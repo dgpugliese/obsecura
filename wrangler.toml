@@ -17,12 +17,10 @@ bucket_name = "obscura-blobs"
 preview_bucket_name = "obscura-blobs-dev"
 
 # Per-blob metadata: expiresAt, downloadsRemaining, size.
-# Replace `id` and `preview_id` with real namespace IDs from `wrangler kv namespace create`
-# before deploying. For `wrangler dev` (local mode) the placeholders are fine.
 [[kv_namespaces]]
 binding = "META"
-id = "REPLACE_BEFORE_DEPLOY"
-preview_id = "REPLACE_BEFORE_DEPLOY"
+id = "e3f6e5d9d51b4c05840f7a04636bac60"          # obscura-meta
+preview_id = "4601f6aae329423db060f8238b9e284d"  # obscura-meta-preview
 
 # Hourly sweep for orphaned R2 objects whose KV metadata expired.
 # KV's own expirationTtl handles metadata cleanup; this handler is a safety net.
