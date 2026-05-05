@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <title>Obscura — Cryptographer's Terminal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Zero-knowledge ephemeral file transfer. Files encrypted in your browser with AES-256-GCM. Keys never reach the server." />
+<meta name="theme-color" content="#08090c" />
+<meta property="og:title" content="OBSCURA — zero-knowledge file transfer" />
+<meta property="og:description" content="Files encrypted in your browser. The server never sees your keys." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="/favicon.svg" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -72,6 +80,15 @@ function randHex(len = 4) {
 }
 
 function ScrambleText({ value, speed = 80, lockProgress = 1, color, style, charset = CIPHER_CHARS }) {
+  // When fully locked (the common case), there's no visible animation — just
+  // render the target value once instead of repainting it every frame.
+  if (lockProgress >= 1) {
+    return <span style={{ color, fontVariantNumeric: "tabular-nums", ...style }}>{value}</span>;
+  }
+  return <ScrambleTextAnimated value={value} speed={speed} lockProgress={lockProgress} color={color} style={style} charset={charset} />;
+}
+
+function ScrambleTextAnimated({ value, speed, lockProgress, color, style, charset }) {
   const [out, setOut] = useState(() => value.split("").map(() => charset[Math.floor(Math.random() * charset.length)]).join(""));
   useEffect(() => {
     const id = setInterval(() => {
@@ -85,25 +102,27 @@ function ScrambleText({ value, speed = 80, lockProgress = 1, color, style, chars
       setOut(s);
     }, speed);
     return () => clearInterval(id);
-  }, [value, lockProgress, speed]);
+  }, [value, lockProgress, speed, charset]);
   return <span style={{ color, fontVariantNumeric: "tabular-nums", ...style }}>{out}</span>;
 }
 
-function HexStream({ len = 32, speed = 60, style, color }) {
+function HexStream({ len = 32, speed = 60, style, color, paused = false }) {
   const [s, setS] = useState(() => randHex(len));
   useEffect(() => {
+    if (paused) return;
     const id = setInterval(() => setS(randHex(len)), speed);
     return () => clearInterval(id);
-  }, [len, speed]);
+  }, [len, speed, paused]);
   return <span style={{ color, ...style }}>{s}</span>;
 }
 
-function HexDump({ rows = 6, cols = 16, speed = 80, color, dim }) {
+function HexDump({ rows = 6, cols = 16, speed = 80, color, dim, paused = false }) {
   const [seed, setSeed] = useState(0);
   useEffect(() => {
+    if (paused) return;
     const id = setInterval(() => setSeed((x) => x + 1), speed);
     return () => clearInterval(id);
-  }, [speed]);
+  }, [speed, paused]);
   const lines = useMemo(() => {
     const out = [];
     for (let r = 0; r < rows; r++) {
@@ -130,12 +149,13 @@ function HexDump({ rows = 6, cols = 16, speed = 80, color, dim }) {
   );
 }
 
-function EntropyBar({ width = 220, height = 38, color, dim, speed = 90 }) {
+function EntropyBar({ width = 220, height = 38, color, dim, speed = 90, paused = false }) {
   const [seed, setSeed] = useState(0);
   useEffect(() => {
+    if (paused) return;
     const id = setInterval(() => setSeed((x) => x + 1), speed);
     return () => clearInterval(id);
-  }, [speed]);
+  }, [speed, paused]);
   const bars = useMemo(() => {
     const n = 56;
     return Array.from({ length: n }, () => 0.25 + Math.random() * 0.75);
@@ -515,6 +535,16 @@ async function decryptBlobV2(blob, passphrase) {
   return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: dataIv }, dek, ct));
 }
 
+function useNarrow(threshold = 720) {
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < threshold);
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth < threshold);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [threshold]);
+  return narrow;
+}
+
 function clampNum(n, min, max, fallback) {
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, n));
@@ -583,36 +613,41 @@ function LayoutToggle({ layout, setLayout }) {
   );
 }
 
-function TopBar({ subtitle, layout, setLayout }) {
+function TopBar({ subtitle, layout, setLayout, narrow = false }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "14px 22px",
+      padding: narrow ? "10px 14px" : "14px 22px",
       borderBottom: `1px solid ${theme.border}`,
       background: theme.panelLo,
       fontFamily: "var(--mono)",
+      gap: 8,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <div style={{
-            width: 22, height: 22, borderRadius: 4,
+            width: 22, height: 22, borderRadius: 4, flex: "0 0 22px",
             background: theme.accentSoft, border: `1px solid ${theme.accentLine}`,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <IcLock size={12} color={theme.accent} />
           </div>
           <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.32em", color: theme.ink }}>OBSCURA</span>
-          <span style={{ fontSize: 10, color: theme.inkFaint, letterSpacing: "0.18em" }}>v0.4.2 · MAINNET</span>
+          {!narrow && <span style={{ fontSize: 10, color: theme.inkFaint, letterSpacing: "0.18em" }}>v0.4.2 · MAINNET</span>}
         </div>
-        <div style={{ width: 1, height: 18, background: theme.border, margin: "0 4px" }} />
-        <span style={{ fontSize: 11, color: theme.inkDim }}>
-          session <span style={{ color: theme.ink }}>7F3A·EF21·9B02·D4C8</span>
-        </span>
+        {!narrow && (
+          <>
+            <div style={{ width: 1, height: 18, background: theme.border, margin: "0 4px" }} />
+            <span style={{ fontSize: 11, color: theme.inkDim, whiteSpace: "nowrap" }}>
+              session <span style={{ color: theme.ink }}>7F3A·EF21·9B02·D4C8</span>
+            </span>
+          </>
+        )}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 11, color: theme.inkDim }}>
-        {subtitle && <span style={{ color: theme.inkFaint }}>{subtitle}</span>}
-        <Clock color={theme.ink} />
-        <Tag secure><Dot color={theme.secure} pulse /> secure</Tag>
+      <div style={{ display: "flex", alignItems: "center", gap: narrow ? 8 : 14, fontSize: 11, color: theme.inkDim }}>
+        {subtitle && !narrow && <span style={{ color: theme.inkFaint }}>{subtitle}</span>}
+        {!narrow && <Clock color={theme.ink} />}
+        {!narrow && <Tag secure><Dot color={theme.secure} pulse /> secure</Tag>}
         <Tag accent>ZK · OK</Tag>
         <LayoutToggle layout={layout} setLayout={setLayout} />
       </div>
@@ -623,14 +658,14 @@ function TopBar({ subtitle, layout, setLayout }) {
 // ============================================================
 // Spec strip
 // ============================================================
-function SpecStrip() {
+function SpecStrip({ active = false, narrow = false }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+    <div style={{ display: "grid", gridTemplateColumns: narrow ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 14 }}>
       <Panel label="cipher" right="01">
         <div style={{ padding: "14px 14px 12px" }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>AES-256<span style={{ color: theme.accent }}>/GCM</span></div>
           <div style={{ marginTop: 8, fontSize: 10, color: theme.inkDim, fontFamily: "var(--mono)", lineHeight: 1.7 }}>
-            <div>nonce ··· <HexStream len={16} color={theme.ink} speed={140} /></div>
+            <div>nonce ··· <HexStream len={16} color={theme.ink} speed={140} paused={!active} /></div>
             <div>tag ····· 128 bit · authenticated</div>
             <div>kdf ····· argon2id · m=64MB t=3</div>
           </div>
@@ -663,7 +698,7 @@ function SpecStrip() {
             <div style={{ fontSize: 10, color: theme.inkFaint, fontFamily: "var(--mono)" }}>bits/byte</div>
           </div>
           <div style={{ marginTop: 6 }}>
-            <EntropyBar width={250} height={32} color={theme.accent} dim={theme.inkFaint} />
+            <EntropyBar width={250} height={32} color={theme.accent} dim={theme.inkFaint} paused={!active} />
           </div>
         </div>
       </Panel>
@@ -674,7 +709,7 @@ function SpecStrip() {
 // ============================================================
 // Left rail
 // ============================================================
-function LeftRail({ screen }) {
+function LeftRail({ screen, active = false }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Panel label="status" right={<Dot color={theme.secure} pulse />}>
@@ -701,7 +736,7 @@ function LeftRail({ screen }) {
       </Panel>
       <Panel label="recent ciphertext">
         <div style={{ padding: "10px 12px 12px" }}>
-          <HexDump rows={7} cols={10} color={theme.accent} dim={theme.inkFaint} speed={140} />
+          <HexDump rows={7} cols={10} color={theme.accent} dim={theme.inkFaint} speed={140} paused={!active} />
         </div>
       </Panel>
       <Panel label="audit ledger">
@@ -720,7 +755,7 @@ function LeftRail({ screen }) {
 // ============================================================
 // Right rail
 // ============================================================
-function ZKPipelineCompact() {
+function ZKPipelineCompact({ active = false }) {
   return (
     <div style={{ position: "relative", height: 86, padding: "8px 4px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "100%" }}>
@@ -748,14 +783,14 @@ function ZKPipelineCompact() {
       <div style={{
         position: "absolute", left: 12, right: 12, top: 22, height: 1,
         background: `repeating-linear-gradient(90deg, ${theme.accent} 0 4px, transparent 4px 8px)`,
-        animation: "obs-march 1.4s linear infinite",
+        animation: active ? "obs-march 1.4s linear infinite" : "none",
         opacity: 0.7,
       }} />
     </div>
   );
 }
 
-function RightRail({ files }) {
+function RightRail({ files, active = false }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Panel label="payload" right={`${files.length} file${files.length === 1 ? "" : "s"}`}>
@@ -797,13 +832,13 @@ function RightRail({ files }) {
           <div style={{ display: "flex", justifyContent: "space-between" }}><span>workers</span><span style={{ color: theme.ink }}>×8</span></div>
           <div style={{ display: "flex", justifyContent: "space-between" }}><span>throughput</span><span style={{ color: theme.accent }}>118.4 MB/s</span></div>
           <div style={{ marginTop: 8 }}>
-            <EntropyBar width={236} height={28} color={theme.accent} dim={theme.inkFaint} speed={130} />
+            <EntropyBar width={236} height={28} color={theme.accent} dim={theme.inkFaint} speed={130} paused={!active} />
           </div>
         </div>
       </Panel>
-      <Panel label="zk transit" right="live">
+      <Panel label="zk transit" right={active ? "live" : "idle"}>
         <div style={{ padding: 8 }}>
-          <ZKPipelineCompact />
+          <ZKPipelineCompact active={active} />
         </div>
       </Panel>
     </div>
@@ -1008,7 +1043,7 @@ function HeroEncrypting({ files }) {
   );
 }
 
-function HeroDone({ files, onReset, link, onDownload, mode, passphrase }) {
+function HeroDone({ files, onReset, link, onDownload, mode, passphrase, onBurn, canBurn }) {
   const totalMB = files.reduce((a, f) => a + f.bytes, 0) / 1e6;
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -1054,7 +1089,7 @@ function HeroDone({ files, onReset, link, onDownload, mode, passphrase }) {
       </div>
       <div>
         <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint, letterSpacing: "0.2em", textTransform: "uppercase" }}>recipient link</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <div style={{
             flex: 1, padding: "16px 18px",
             border: `1px solid ${theme.borderHi}`, borderRadius: 4,
@@ -1095,6 +1130,17 @@ function HeroDone({ files, onReset, link, onDownload, mode, passphrase }) {
             letterSpacing: "0.18em", textTransform: "uppercase",
             borderRadius: 4, cursor: "pointer",
           }}>SAVE</button>
+          {canBurn && (
+            <button onClick={onBurn} title="Burn this share now"
+              style={{
+                padding: "16px 18px",
+                border: `1px solid ${theme.danger}`,
+                background: "transparent", color: theme.danger,
+                fontFamily: "var(--mono)", fontSize: 12,
+                letterSpacing: "0.18em", textTransform: "uppercase",
+                borderRadius: 4, cursor: "pointer",
+              }}>BURN</button>
+          )}
           <button onClick={onReset} style={{
             padding: "16px 18px",
             border: `1px solid ${theme.border}`,
@@ -1168,15 +1214,17 @@ function HeroDone({ files, onReset, link, onDownload, mode, passphrase }) {
   );
 }
 
-function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnabled, passphrase, setPassphrase, onClose }) {
+function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnabled, passphrase, setPassphrase, onClose, narrow = false }) {
   return (
     <div style={{
       minHeight: 360,
       borderRadius: 6,
       border: `1px solid ${theme.borderHi}`,
       background: theme.panel,
-      padding: 22,
-      display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 22,
+      padding: narrow ? 16 : 22,
+      paddingTop: narrow ? 56 : 22,
+      display: "grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr 1fr",
+      gap: narrow ? 14 : 22,
       position: "relative",
     }}>
       <button onClick={onClose} style={{
@@ -1350,6 +1398,7 @@ function App() {
   useEffect(() => { localStorage.setItem("obscura.ttl", String(ttl)); }, [ttl]);
   useEffect(() => { localStorage.setItem("obscura.maxdl", String(maxDL)); }, [maxDL]);
   useEffect(() => { localStorage.setItem("obscura.passEnabled", passEnabled ? "1" : "0"); }, [passEnabled]);
+  const narrow = useNarrow();
   const dragDepth = useRef(0);
   const fileInputRef = useRef(null);
 
@@ -1504,17 +1553,55 @@ function App() {
   };
   const browse = () => fileInputRef.current?.click();
   const saveAgain = () => { if (result?.blob) downloadBytes("payload.obscura", result.blob); };
+  const burnNow = useCallback(async () => {
+    if (!result?.id) return;
+    if (!confirm("Burn this share now? The recipient link will return 410.")) return;
+    try {
+      await fetch(`/api/d/${result.id}`, { method: "DELETE" });
+    } catch (err) {
+      console.warn("delete failed (may already be gone)", err);
+    }
+    reset();
+  }, [result]);
+
+  // Keyboard: paste text → encrypt as note.txt; ⌘/Ctrl+O → file picker.
+  useEffect(() => {
+    const onPaste = (e) => {
+      if (screen !== "empty") return;
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      const text = e.clipboardData?.getData("text/plain");
+      if (!text || !text.trim()) return;
+      e.preventDefault();
+      const file = new File([new Blob([text], { type: "text/plain" })], "note.txt", { type: "text/plain" });
+      acceptFiles([file]);
+    };
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "o" && screen === "empty") {
+        e.preventDefault();
+        browse();
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("paste", onPaste);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [screen, acceptFiles]);
 
   let hero;
+  const active = screen === "encrypting" || screen === "done";
   if (screen === "empty") hero = <HeroEmpty onBrowse={browse} onSettings={() => setScreen("settings")} ttl={ttl} maxDL={maxDL} />;
   else if (screen === "drag") hero = <HeroDragOver files={files} />;
   else if (screen === "encrypting") hero = <HeroEncrypting files={files} />;
-  else if (screen === "done") hero = <HeroDone files={files} onReset={reset} link={result?.link} onDownload={saveAgain} mode={result?.mode} passphrase={result?.passphrase} />;
+  else if (screen === "done") hero = <HeroDone files={files} onReset={reset} link={result?.link} onDownload={saveAgain} mode={result?.mode} passphrase={result?.passphrase} onBurn={burnNow} canBurn={result?.mode === "remote" && !!result?.id} />;
   else if (screen === "settings") hero = <HeroSettings
     ttl={ttl} setTtl={setTtl}
     maxDL={maxDL} setMaxDL={setMaxDL}
     passEnabled={passEnabled} setPassEnabled={setPassEnabled}
     passphrase={passphrase} setPassphrase={setPassphrase}
+    narrow={narrow}
     onClose={() => setScreen("empty")} />;
 
   return (
@@ -1537,37 +1624,37 @@ function App() {
       </svg>
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        <TopBar subtitle={subs[screen]} layout={layout} setLayout={setLayout} />
+        <TopBar subtitle={subs[screen]} layout={layout} setLayout={setLayout} narrow={narrow} />
 
-        {layout === "sidebar" && (
+        {layout === "sidebar" && !narrow && (
           <div style={{
             flex: 1, padding: 22,
             display: "grid",
             gridTemplateColumns: "260px 1fr 280px",
             gap: 18, minHeight: 0,
           }}>
-            <LeftRail screen={screen} />
+            <LeftRail screen={screen} active={active} />
             <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
               {hero}
-              <SpecStrip />
+              <SpecStrip active={active} />
               <CommandStrip screen={screen} />
             </div>
-            <RightRail files={files} />
+            <RightRail files={files} active={active} />
           </div>
         )}
 
-        {layout === "centered" && (
+        {(layout === "centered" || (layout === "sidebar" && narrow)) && (
           <div style={{
-            flex: 1, padding: "40px 22px",
+            flex: 1, padding: narrow ? "20px 14px" : "40px 22px",
             display: "flex", justifyContent: "center",
           }}>
             <div style={{
               width: "100%", maxWidth: 760,
-              display: "flex", flexDirection: "column", gap: 18,
+              display: "flex", flexDirection: "column", gap: narrow ? 12 : 18,
             }}>
               {hero}
               <PayloadInline files={files} />
-              <SpecStrip />
+              <SpecStrip active={active} narrow={narrow} />
               <CommandStrip screen={screen} />
             </div>
           </div>
@@ -1575,7 +1662,7 @@ function App() {
 
         {layout === "terminal" && (
           <div style={{
-            flex: 1, padding: "32px 22px",
+            flex: 1, padding: narrow ? "16px 12px" : "32px 22px",
             display: "flex", justifyContent: "center",
           }}>
             <div style={{
@@ -1602,7 +1689,7 @@ function App() {
                 }}>obscura ~ encrypt</span>
                 <span style={{ width: 60 }} />
               </div>
-              <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ padding: narrow ? 14 : 22, display: "flex", flexDirection: "column", gap: 14 }}>
                 {hero}
                 <PayloadInline files={files} />
                 <CommandStrip screen={screen} />
@@ -1758,6 +1845,7 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
   const [error, setError] = useState(null);
   const [layout, setLayoutState] = useState(() => localStorage.getItem("obscura.layout") || "centered");
   const setLayout = (v) => { setLayoutState(v); localStorage.setItem("obscura.layout", v); };
+  const narrow = useNarrow();
   const [passphrase, setPassphrase] = useState("");
   const [pendingBlob, setPendingBlob] = useState(null); // bytes awaiting passphrase
   const fileInputRef = useRef(null);
@@ -1936,17 +2024,17 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
       </svg>
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        <TopBar subtitle={subtitle} layout={layout} setLayout={setLayout} />
+        <TopBar subtitle={subtitle} layout={layout} setLayout={setLayout} narrow={narrow} />
         <div style={{
-          flex: 1, padding: "40px 22px",
+          flex: 1, padding: narrow ? "20px 14px" : "40px 22px",
           display: "flex", justifyContent: "center",
         }}>
           <div style={{
             width: "100%", maxWidth: 760,
-            display: "flex", flexDirection: "column", gap: 18,
+            display: "flex", flexDirection: "column", gap: narrow ? 12 : 18,
           }}>
             {hero}
-            <SpecStrip />
+            <SpecStrip active={phase === "working" || phase === "fetching"} narrow={narrow} />
           </div>
         </div>
       </div>
