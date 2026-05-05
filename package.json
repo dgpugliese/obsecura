@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "description": "Zero-knowledge ephemeral file transfer",
   "scripts": {
-    "build": "esbuild src/app.jsx --bundle=false --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=es2020 --legal-comments=none --outfile=app.js",
-    "build:min": "esbuild src/app.jsx --bundle=false --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=es2020 --minify --legal-comments=none --outfile=app.js",
+    "build": "esbuild src/app.jsx --bundle=false --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=es2020 --legal-comments=none --define:__BUILD_SHA__=\"\\\"$(git rev-parse --short=7 HEAD 2>/dev/null || echo dev)\\\"\" --define:__BUILD_TIME__=\"\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\"\" --outfile=app.js",
+    "build:min": "esbuild src/app.jsx --bundle=false --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=es2020 --minify --legal-comments=none --define:__BUILD_SHA__=\"\\\"$(git rev-parse --short=7 HEAD 2>/dev/null || echo dev)\\\"\" --define:__BUILD_TIME__=\"\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\"\" --outfile=app.js",
     "predev": "npm run build",
     "dev": "wrangler dev",
     "predeploy": "npm run build:min",
