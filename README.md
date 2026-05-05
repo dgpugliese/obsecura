@@ -4,6 +4,8 @@
 
 → **Live:** https://obscr.app
 
+> ⚠ **Disclaimer.** OBSCURA is provided **AS IS** under the [MIT License](LICENSE). It has **not been independently security-audited** and is **not appropriate for regulated data** (HIPAA / PCI / CJIS / classified). No SLA, no key recovery, no warranty. Read **[DISCLAIMER.md](DISCLAIMER.md)** and **[PRIVACY.md](PRIVACY.md)** before using it for anything that matters.
+
 ---
 
 ## How it works
