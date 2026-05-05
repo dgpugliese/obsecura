@@ -2,6 +2,14 @@ name = "obscura"
 main = "worker/index.js"
 compatibility_date = "2026-05-01"
 
+# Custom domain. Cert + routing managed by Cloudflare; declaring it here
+# means future deploys reassert the binding instead of relying on dashboard
+# state that isn't tracked in the repo.
+routes = [
+  { pattern = "obscr.app", custom_domain = true },
+  { pattern = "www.obscr.app", custom_domain = true },
+]
+
 # Serve Obscura.html (and other static assets) from the project root.
 # `.assetsignore` excludes worker/, wrangler.toml, .git/, etc.
 # Default not_found behavior falls through to the Worker, which rewrites
