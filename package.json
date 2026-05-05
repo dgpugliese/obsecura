@@ -4,10 +4,15 @@
   "version": "0.1.0",
   "description": "Zero-knowledge ephemeral file transfer",
   "scripts": {
+    "build": "esbuild src/app.jsx --bundle=false --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=es2020 --legal-comments=none --outfile=app.js",
+    "build:min": "esbuild src/app.jsx --bundle=false --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=es2020 --minify --legal-comments=none --outfile=app.js",
+    "predev": "npm run build",
     "dev": "wrangler dev",
+    "predeploy": "npm run build:min",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "wrangler": "^3.90.0"
   }
 }
