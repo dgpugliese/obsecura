@@ -94,4 +94,4 @@ Anonymous file hosting attracts misuse. To report illegal content or request tak
 
 ## Development note
 
-Built with [Claude Code](https://claude.com/claude-code) as a vehicle for AI-assisted product engineering — design handoff via Claude Design, frontend and backend in a single working session, real provisioning via the Cloudflare MCP. The architecture and code are real; the speed of getting there is the demo.
+A zero-knowledge file transfer app built end-to-end with [Claude Code](https://claude.com/claude-code) — design through Claude Design, frontend and Cloudflare Worker backend written collaboratively, infrastructure provisioned via the Cloudflare MCP. AI as a serious engineering partner, not a code-completion toy.
