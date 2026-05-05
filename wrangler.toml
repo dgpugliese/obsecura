@@ -8,6 +8,7 @@ compatibility_date = "2026-05-01"
 routes = [
   { pattern = "obscr.app", custom_domain = true },
   { pattern = "www.obscr.app", custom_domain = true },
+  { pattern = "status.obscr.app", custom_domain = true },
 ]
 
 # Serve Obscura.html (and other static assets) from the project root.

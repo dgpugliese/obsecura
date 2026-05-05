@@ -75,8 +75,12 @@ export default {
       return Response.json({ ok: true, ts: Date.now() });
     }
 
+    if (url.pathname === "/api/transparency") {
+      return handleTransparency(env);
+    }
+
     if (url.pathname === "/api/upload" && request.method === "POST") {
-      return handleUpload(request, env);
+      return handleUpload(request, env, ctx);
     }
 
     const m = url.pathname.match(/^\/api\/d\/([a-f0-9]{16})$/);
@@ -84,24 +88,35 @@ export default {
       const id = m[1];
       if (request.method === "GET") return handleDownload(id, env, ctx);
       if (request.method === "HEAD") return handleHead(id, env);
-      if (request.method === "DELETE") return handleManualPurge(id, env);
+      if (request.method === "DELETE") return handleManualPurge(id, env, ctx);
       return new Response("method not allowed", { status: 405 });
     }
 
     if (url.pathname.startsWith("/api/")) {
-      return new Response("not found", { status: 404 });
+      return jerr(404, "not found");
     }
 
-    // Root → Obscura.html. Preserves the URL fragment because fragments
-    // never get sent to the server in the first place.
-    if (url.pathname === "/" || url.pathname === "") {
+    // Per-subdomain root rewrites. Subdomain hosts pin a single page so
+    // visitors land directly on it instead of having to know the path.
+    const host = url.hostname;
+    const isRoot = url.pathname === "/" || url.pathname === "";
+    if (isRoot) {
+      const rootPath =
+        host === "status.obscr.app" ? "/status.html" : "/Obscura.html";
       const u = new URL(request.url);
-      u.pathname = "/Obscura.html";
+      u.pathname = rootPath;
       const res = await env.ASSETS.fetch(new Request(u.toString(), request));
       return withSecurityHeaders(res);
     }
 
     const res = await env.ASSETS.fetch(request);
+
+    // Replace the asset binding's bare 404 with our styled page. ASSETS
+    // returns 404 for any path that doesn't match a file in the bundle.
+    if (res.status === 404) {
+      return serveNotFound(request, env);
+    }
+
     // Apply security headers to HTML responses; pass everything else through
     // untouched so binary assets keep their content-type.
     const ct = res.headers.get("content-type") || "";
@@ -121,7 +136,7 @@ export default {
 const MIN_OBS1 = 32;
 const MIN_OBS2 = 108;
 
-async function handleUpload(request, env) {
+async function handleUpload(request, env, ctx) {
   if (!originAllowed(request)) return jerr(403, "forbidden origin");
 
   const ttl = clampInt(request.headers.get("X-Obscura-TTL"), 1, parseInt(env.MAX_TTL_HOURS, 10) || 168, 24);
@@ -155,6 +170,8 @@ async function handleUpload(request, env) {
     { expirationTtl: Math.max(60, ttl * 3600 + 60) }
   );
 
+  ctx.waitUntil(bumpStat(env, "created"));
+
   return Response.json({ id, expiresAt, downloads: maxDL });
 }
 
@@ -182,7 +199,7 @@ async function handleDownload(id, env, ctx) {
   const meta = JSON.parse(metaStr);
 
   if (meta.expiresAt < Date.now()) {
-    ctx.waitUntil(purge(id, env));
+    ctx.waitUntil(Promise.all([purge(id, env), bumpStat(env, "expired")]));
     return jerr(410, "expired");
   }
   if (meta.downloads <= 0) {
@@ -201,7 +218,7 @@ async function handleDownload(id, env, ctx) {
   // an accepted MVP race. Durable Objects would close it.
   const remaining = meta.downloads - 1;
   if (remaining <= 0) {
-    ctx.waitUntil(purge(id, env));
+    ctx.waitUntil(Promise.all([purge(id, env), bumpStat(env, "exhausted")]));
   } else {
     const newMeta = { ...meta, downloads: remaining };
     const ttlSec = Math.max(60, Math.floor((meta.expiresAt - Date.now()) / 1000));
@@ -219,10 +236,32 @@ async function handleDownload(id, env, ctx) {
   });
 }
 
-async function handleManualPurge(id, env) {
+async function handleManualPurge(id, env, ctx) {
   if (!HEX_ID.test(id)) return jerr(400, "bad id");
+  // Only count a burn if the share actually existed — otherwise anyone could
+  // inflate the counter by hitting random IDs.
+  const existed = (await env.META.get(id)) !== null;
   await purge(id, env);
+  if (existed) ctx.waitUntil(bumpStat(env, "burned"));
   return new Response(null, { status: 204 });
+}
+
+async function serveNotFound(request, env) {
+  const u = new URL(request.url);
+  u.pathname = "/404.html";
+  const res = await env.ASSETS.fetch(new Request(u.toString(), request));
+  // If 404.html itself is missing, fall back to a plain text response so we
+  // never serve an asset-binding default page.
+  if (res.status !== 200) {
+    return withSecurityHeaders(new Response("not found\n", {
+      status: 404,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    }));
+  }
+  return withSecurityHeaders(new Response(res.body, {
+    status: 404,
+    headers: res.headers,
+  }));
 }
 
 async function purge(id, env) {
@@ -243,6 +282,73 @@ async function sweepOrphans(env) {
     }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor && scanned < 2000); // safety cap per run
+}
+
+// ============================================================
+// Transparency counters
+// ============================================================
+//
+// Daily aggregate counters stored in KV under `stat:YYYY-MM-DD:<event>`.
+// Events: created, burned, expired, exhausted. Plus two cumulative manual
+// counters at `stat:abuse:received` and `stat:abuse:actioned`, updated by the
+// operator out-of-band (e.g. `wrangler kv key put`).
+//
+// Increment is read-then-write — two writes in the same second can race and
+// undercount by one. This is acceptable: these numbers are aggregate, public,
+// and explicitly labeled "best-effort" on the transparency page.
+
+const STAT_TTL_SEC = 90 * 24 * 3600;
+
+function todayUTC() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function bumpStat(env, event) {
+  const key = `stat:${todayUTC()}:${event}`;
+  const cur = parseInt((await env.META.get(key)) || "0", 10) || 0;
+  await env.META.put(key, String(cur + 1), { expirationTtl: STAT_TTL_SEC });
+}
+
+async function handleTransparency(env) {
+  const days = 30;
+  const today = new Date();
+  const dateKeys = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    dateKeys.push(d.toISOString().slice(0, 10));
+  }
+  const events = ["created", "burned", "expired", "exhausted"];
+  const daily = {};
+  for (const date of dateKeys) {
+    const row = { date };
+    for (const ev of events) {
+      const v = await env.META.get(`stat:${date}:${ev}`);
+      row[ev] = v ? parseInt(v, 10) : 0;
+    }
+    daily[date] = row;
+  }
+  const abuseReceived = parseInt((await env.META.get("stat:abuse:received")) || "0", 10) || 0;
+  const abuseActioned = parseInt((await env.META.get("stat:abuse:actioned")) || "0", 10) || 0;
+
+  return Response.json(
+    {
+      generatedAt: Date.now(),
+      windowDays: days,
+      note: "Aggregate daily counts. No per-share data, no IPs, no identifiers. Best-effort: simultaneous events in the same second may undercount by one.",
+      events: {
+        created: "share uploaded",
+        burned: "manually purged by sender",
+        expired: "TTL elapsed before final download",
+        exhausted: "all downloads consumed",
+      },
+      daily,
+      abuse: { received: abuseReceived, actioned: abuseActioned, cumulative: true },
+    },
+    {
+      headers: { "cache-control": "public, max-age=300" },
+    }
+  );
 }
 
 function clampInt(raw, min, max, fallback) {

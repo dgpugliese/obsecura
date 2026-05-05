@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>OBSCURA — 404</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="That share is gone, expired, or never existed." />
+<meta name="theme-color" content="#08090c" />
+<meta name="robots" content="noindex" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090c;
+    --panel: #0e1016;
+    --panel-lo: #0a0c12;
+    --border: #1c2030;
+    --ink: #d6dae5;
+    --ink-dim: #7a808e;
+    --ink-faint: #4a4f5e;
+    --accent: #6ee7b7;
+    --crit: #ef6f6f;
+    --mono: "JetBrains Mono", "Fira Code", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; }
+  .card { width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; }
+  .card .label { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
+  .card .body { padding: 28px 24px 22px; }
+  .code { font-size: 64px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); line-height: 1; }
+  .code .accent { color: var(--crit); }
+  .h1 { margin-top: 14px; font-size: 16px; font-weight: 600; color: var(--ink); }
+  .lead { margin-top: 8px; color: var(--ink-dim); font-size: 13px; line-height: 1.7; }
+  .reasons { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--ink-dim); line-height: 1.85; }
+  .reasons .k { color: var(--ink-faint); display: inline-block; width: 18px; }
+  .reasons .v { color: var(--ink); }
+  .actions { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 10px 16px; border: 1px solid var(--border); border-radius: 3px; color: var(--ink); font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  .btn.primary { border-color: var(--accent); color: var(--accent); }
+  .btn.primary:hover { background: rgba(110, 231, 183, 0.08); }
+  .foot { margin-top: 22px; font-size: 10px; color: var(--ink-faint); text-align: center; letter-spacing: 0.08em; }
+  .brand { font-size: 12px; font-weight: 700; letter-spacing: 0.32em; color: var(--ink); margin-bottom: 18px; }
+  .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">OBSCURA<span class="v">404</span></div>
+  <div class="card">
+    <div class="label"><span>request</span><span>404 / not found</span></div>
+    <div class="body">
+      <div class="code">4<span class="accent">0</span>4</div>
+      <div class="h1">That path resolves to nothing.</div>
+      <div class="lead">
+        Either the share was burned, its TTL elapsed, all downloads were consumed, or this URL never pointed at anything in the first place. The server stores ciphertext only, so there's nothing here to recover.
+      </div>
+      <div class="reasons">
+        <div><span class="k">·</span> <span class="v">share burned</span> — sender hit "burn now" on the Done screen.</div>
+        <div><span class="k">·</span> <span class="v">expired</span> — TTL ran out before the final download.</div>
+        <div><span class="k">·</span> <span class="v">exhausted</span> — download count reached zero.</div>
+        <div><span class="k">·</span> <span class="v">typo</span> — share IDs are 16 hex characters, anything else is rejected.</div>
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="/">new share</a>
+        <a class="btn" href="/status.html">status</a>
+        <a class="btn" href="/transparency.html">transparency</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot">obscr.app · zero-knowledge file transfer</div>
+</div>
+</body>
+</html>
