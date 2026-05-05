@@ -550,28 +550,38 @@ function clampNum(n, min, max, fallback) {
   return Math.max(min, Math.min(max, n));
 }
 
-// Try to POST ciphertext to the local Worker. Returns { id } on success,
-// null if the backend is unreachable (offline or running plain http.server).
-async function tryUpload(blob, { ttl, maxDL }) {
-  try {
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      headers: {
-        "content-type": "application/octet-stream",
-        "x-obscura-ttl": String(ttl),
-        "x-obscura-maxdl": String(maxDL),
-      },
-      body: blob,
-    });
-    if (!res.ok) {
-      console.warn("upload failed", res.status, await res.text());
-      return null;
+// POST ciphertext to the Worker via XHR so we can report real upload progress.
+// Returns { id, expiresAt, downloads } on success, null if the backend is
+// unreachable (offline or running plain http.server) — the caller falls back
+// to file-only mode.
+function tryUpload(blob, { ttl, maxDL }, onProgress) {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload");
+    xhr.setRequestHeader("content-type", "application/octet-stream");
+    xhr.setRequestHeader("x-obscura-ttl", String(ttl));
+    xhr.setRequestHeader("x-obscura-maxdl", String(maxDL));
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
+      };
     }
-    return await res.json();
-  } catch (err) {
-    console.info("backend not reachable, falling back to file-only mode", err);
-    return null;
-  }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { resolve(null); }
+      } else {
+        console.warn("upload failed", xhr.status, xhr.responseText);
+        resolve(null);
+      }
+    };
+    xhr.onerror = () => {
+      console.info("backend not reachable, falling back to file-only mode");
+      resolve(null);
+    };
+    xhr.ontimeout = () => resolve(null);
+    xhr.send(blob);
+  });
 }
 
 function downloadBytes(name, bytes, type = "application/octet-stream") {
@@ -885,7 +895,7 @@ function PayloadInline({ files }) {
 // ============================================================
 // Hero states
 // ============================================================
-function HeroEmpty({ onBrowse, onSettings, ttl, maxDL }) {
+function HeroEmpty({ onBrowse, onSettings, onCompose, ttl, maxDL }) {
   return (
     <div style={{
       position: "relative", height: 360, borderRadius: 6,
@@ -926,22 +936,31 @@ function HeroEmpty({ onBrowse, onSettings, ttl, maxDL }) {
         <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 12, color: theme.inkDim }}>
           max 50MB · or click to browse · pasted text accepted
         </div>
-        <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
           <Tag>⌘ + V paste</Tag>
           <Tag>⌘ + O browse</Tag>
           <Tag>folder ok</Tag>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onSettings?.(); }} style={{
-          marginTop: 14,
-          padding: "6px 12px",
-          border: `1px solid ${theme.border}`,
-          background: theme.panelLo, color: theme.inkDim,
-          fontFamily: "var(--mono)", fontSize: 10,
-          letterSpacing: "0.18em", textTransform: "uppercase",
-          borderRadius: 3, cursor: "pointer",
-        }}>
-          ttl {ttl}h · {maxDL}x downloads · configure
-        </button>
+        <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+          <button onClick={(e) => { e.stopPropagation(); onCompose?.(); }} style={{
+            padding: "6px 12px",
+            border: `1px solid ${theme.border}`,
+            background: theme.panelLo, color: theme.inkDim,
+            fontFamily: "var(--mono)", fontSize: 10,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            borderRadius: 3, cursor: "pointer",
+          }}>compose text</button>
+          <button onClick={(e) => { e.stopPropagation(); onSettings?.(); }} style={{
+            padding: "6px 12px",
+            border: `1px solid ${theme.border}`,
+            background: theme.panelLo, color: theme.inkDim,
+            fontFamily: "var(--mono)", fontSize: 10,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            borderRadius: 3, cursor: "pointer",
+          }}>
+            ttl {ttl}h · {maxDL}x · configure
+          </button>
+        </div>
       </div>
       <div style={{ position: "absolute", left: 16, bottom: 12, fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint }}>idle · awaiting input</div>
       <div style={{ position: "absolute", right: 16, bottom: 12, fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint }}>
@@ -985,8 +1004,17 @@ function HeroDragOver({ files }) {
   );
 }
 
-function HeroEncrypting({ files }) {
+function HeroEncrypting({ files, stage, uploadPct }) {
   const active = files.find((f) => f.state === "encrypting") || files[0];
+  const stageLabel = stage === "packing" ? "packing payload"
+    : stage === "encrypting" ? "encrypting · AES-256-GCM"
+    : stage === "uploading" ? `uploading · ${Math.round(uploadPct)}%`
+    : "preparing";
+  // Real progress: pack=8%, encrypt=35%, upload=50% → 100% by upload pct.
+  const realPct = stage === "packing" ? 8
+    : stage === "encrypting" ? 35
+    : stage === "uploading" ? 50 + uploadPct / 2
+    : 0;
   return (
     <div style={{
       position: "relative", height: 360, borderRadius: 6,
@@ -996,21 +1024,21 @@ function HeroEncrypting({ files }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", height: "100%" }}>
         <div style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
-            <Tag accent>● encrypting</Tag>
-            <div style={{ marginTop: 14, fontFamily: "var(--mono)", fontSize: 22, fontWeight: 700, color: theme.ink }}>{active.name}</div>
+            <Tag accent>● {stageLabel}</Tag>
+            <div style={{ marginTop: 14, fontFamily: "var(--mono)", fontSize: 22, fontWeight: 700, color: theme.ink }}>{active?.name || "payload"}</div>
             <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: theme.inkDim, marginTop: 4 }}>
-              {active.size} · application/octet-stream · sha256 9AB2··C1F0
+              {active?.size} · {files.length > 1 ? `${files.length} files` : "1 file"} · authenticated
             </div>
           </div>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 11, color: theme.inkDim, marginBottom: 8 }}>
-              <span>cipher.stream</span>
-              <span style={{ color: theme.ink }}>{active.pct.toFixed(1)}%</span>
+              <span>{stage === "uploading" ? "vault.transit" : "cipher.stream"}</span>
+              <span style={{ color: theme.ink }}>{realPct.toFixed(1)}%</span>
             </div>
             <div style={{ height: 6, background: theme.panelLo, border: `1px solid ${theme.border}`, position: "relative", borderRadius: 2, overflow: "hidden" }}>
               <div style={{
                 position: "absolute", left: 0, top: 0, bottom: 0,
-                width: `${active.pct}%`, background: theme.accent,
+                width: `${realPct}%`, background: theme.accent,
                 boxShadow: `0 0 12px ${theme.accent}`,
                 transition: "width 0.2s linear",
               }} />
@@ -1020,9 +1048,9 @@ function HeroEncrypting({ files }) {
               }} />
             </div>
             <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontFamily: "var(--mono)", fontSize: 10, color: theme.inkDim }}>
-              <div>throughput<br/><span style={{ color: theme.ink, fontSize: 13 }}>118.4 MB/s</span></div>
-              <div>blocks<br/><span style={{ color: theme.ink, fontSize: 13 }}>{Math.round(active.pct * 240)} / 24,000</span></div>
-              <div>eta<br/><span style={{ color: theme.ink, fontSize: 13 }}>00:00:{String(Math.max(0, 30 - Math.round(active.pct/3.5))).padStart(2,"0")}</span></div>
+              <div>stage<br/><span style={{ color: theme.ink, fontSize: 13 }}>{stage || "—"}</span></div>
+              <div>files<br/><span style={{ color: theme.ink, fontSize: 13 }}>{files.length}</span></div>
+              <div>{stage === "uploading" ? "uploaded" : "progress"}<br/><span style={{ color: theme.ink, fontSize: 13 }}>{Math.round(realPct)}%</span></div>
             </div>
           </div>
         </div>
@@ -1214,6 +1242,81 @@ function HeroDone({ files, onReset, link, onDownload, mode, passphrase, onBurn, 
   );
 }
 
+function HeroCompose({ onSend, onClose }) {
+  const [text, setText] = useState("");
+  const [name, setName] = useState("note.txt");
+  const submit = () => {
+    if (!text) return;
+    const file = new File([new Blob([text], { type: "text/plain" })], name || "note.txt", { type: "text/plain" });
+    onSend([file]);
+  };
+  return (
+    <div style={{
+      minHeight: 360,
+      borderRadius: 6,
+      border: `1px solid ${theme.borderHi}`,
+      background: theme.panel,
+      padding: 22,
+      position: "relative",
+      display: "flex", flexDirection: "column", gap: 14,
+    }}>
+      <button onClick={onClose} style={{
+        position: "absolute", top: 14, right: 14,
+        padding: "6px 12px",
+        border: `1px solid ${theme.border}`,
+        background: theme.panelHi, color: theme.inkDim,
+        fontFamily: "var(--mono)", fontSize: 10,
+        letterSpacing: "0.18em", textTransform: "uppercase",
+        borderRadius: 3, cursor: "pointer",
+      }}>← back</button>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint, letterSpacing: "0.2em", textTransform: "uppercase" }}>compose · plaintext stays in your browser</div>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="filename.txt"
+        style={{
+          padding: "10px 12px",
+          border: `1px solid ${theme.borderHi}`, background: theme.panelLo,
+          color: theme.ink, fontFamily: "var(--mono)", fontSize: 13,
+          borderRadius: 3, outline: "none",
+        }}
+      />
+      <textarea
+        autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="paste or type the secret you want to send…"
+        style={{
+          flex: 1, minHeight: 200,
+          padding: "12px 14px",
+          border: `1px solid ${theme.borderHi}`, background: theme.panelLo,
+          color: theme.ink, fontFamily: "var(--mono)", fontSize: 13,
+          borderRadius: 3, outline: "none", resize: "vertical",
+          letterSpacing: "0.02em",
+        }}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint }}>
+          {text.length} char{text.length === 1 ? "" : "s"} · {fmtSize(new Blob([text]).size)}
+        </span>
+        <button
+          onClick={submit}
+          disabled={!text}
+          style={{
+            padding: "12px 22px",
+            border: `1px solid ${text ? theme.accentLine : theme.border}`,
+            background: text ? theme.accentSoft : "transparent",
+            color: text ? theme.accent : theme.inkFaint,
+            fontFamily: "var(--mono)", fontSize: 12,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            borderRadius: 4, cursor: text ? "pointer" : "not-allowed",
+          }}
+        >ENCRYPT →</button>
+      </div>
+    </div>
+  );
+}
+
 function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnabled, passphrase, setPassphrase, onClose, narrow = false }) {
   return (
     <div style={{
@@ -1382,6 +1485,8 @@ function App() {
   const [screen, setScreen] = useState("empty"); // empty | drag | encrypting | done | settings
   const [files, setFiles] = useState([]);
   const [result, setResult] = useState(null); // { blob, link, id?, mode: 'remote'|'local' }
+  const [stage, setStage] = useState(null); // null | 'packing' | 'encrypting' | 'uploading'
+  const [uploadPct, setUploadPct] = useState(0);
   const downloadedRef = useRef(false);
   const [layout, setLayoutState] = useState(() => {
     return localStorage.getItem("obscura.layout") || "centered";
@@ -1392,7 +1497,7 @@ function App() {
     const raw = parseInt(localStorage.getItem("obscura.ttl"), 10);
     return allowed.includes(raw) ? raw : 24;
   });
-  const [maxDL, setMaxDL] = useState(() => clampNum(parseInt(localStorage.getItem("obscura.maxdl"), 10), 1, 100, 1));
+  const [maxDL, setMaxDL] = useState(() => clampNum(parseInt(localStorage.getItem("obscura.maxdl"), 10), 1, 100, 3));
   const [passEnabled, setPassEnabled] = useState(() => localStorage.getItem("obscura.passEnabled") === "1");
   const [passphrase, setPassphrase] = useState(() => generatePassphrase());
   useEffect(() => { localStorage.setItem("obscura.ttl", String(ttl)); }, [ttl]);
@@ -1408,6 +1513,7 @@ function App() {
     encrypting: "stream cipher engaged",
     done: "sealed · link issued · awaiting recipient",
     settings: "configure dispatch parameters",
+    compose: "compose · plaintext stays in browser",
   };
 
   const acceptFiles = useCallback(async (fileList) => {
@@ -1423,9 +1529,22 @@ function App() {
     setFiles(meta);
     setResult(null);
     downloadedRef.current = false;
+    setUploadPct(0);
     setScreen("encrypting");
+
+    // Stage helper — both updates `stage` and reflects it onto each file
+    // entry in the right rail so the per-file progress shows real values
+    // instead of a simulated tick.
+    const setStageWithFiles = (s, pct, state) => {
+      setStage(s);
+      setFiles((prev) => prev.map((f) => ({ ...f, state, pct })));
+    };
+
     try {
+      setStageWithFiles("packing", 8, "queued");
       const plain = await packFiles(fileArr);
+
+      setStageWithFiles("encrypting", 35, "encrypting");
       const base = `${location.origin}${location.pathname}`;
       let blob, keyEnc = null, passUsed = null;
       if (passEnabled) {
@@ -1446,7 +1565,13 @@ function App() {
         blob = await encryptBlob(plain, key);
         keyEnc = b64uEncode(await exportRawKey(key));
       }
-      const upload = await tryUpload(blob, { ttl, maxDL });
+
+      setStageWithFiles("uploading", 50, "encrypting");
+      const upload = await tryUpload(blob, { ttl, maxDL }, (pct) => {
+        setUploadPct(pct);
+        setFiles((prev) => prev.map((f) => ({ ...f, state: "encrypting", pct: 50 + pct / 2 })));
+      });
+
       if (upload?.id) {
         const link = passEnabled
           ? `${base}#i=${upload.id}`
@@ -1462,12 +1587,18 @@ function App() {
         const link = `${base}#k=${keyEnc}`;
         setResult({ blob, link, mode: "local" });
       }
+
       // Roll passphrase for the next send so a stale "Done" screen doesn't
       // re-use the previous one.
       if (passEnabled) setPassphrase(generatePassphrase());
+
+      setStage(null);
+      setFiles((prev) => prev.map((f) => ({ ...f, state: "sealed", pct: 100 })));
+      setScreen("done");
     } catch (err) {
       console.error("encrypt failed", err);
       alert("Encryption failed: " + err.message);
+      setStage(null);
       setScreen("empty");
       setFiles([]);
     }
@@ -1511,32 +1642,6 @@ function App() {
       window.removeEventListener("drop", onDrop);
     };
   }, [acceptFiles]);
-
-  // Encryption simulation
-  useEffect(() => {
-    if (screen !== "encrypting") return;
-    const id = setInterval(() => {
-      setFiles((prev) => {
-        const next = prev.map((f) => ({ ...f }));
-        const idx = next.findIndex((f) => f.state !== "sealed");
-        if (idx === -1) return prev;
-        const f = next[idx];
-        if (f.state === "queued") f.state = "encrypting";
-        f.pct = Math.min(100, f.pct + 4 + Math.random() * 3);
-        if (f.pct >= 100) { f.pct = 100; f.state = "sealed"; }
-        return next;
-      });
-    }, 90);
-    return () => clearInterval(id);
-  }, [screen]);
-
-  // Move to done when both: all sealed AND real ciphertext ready
-  useEffect(() => {
-    if (screen === "encrypting" && files.length && files.every((f) => f.state === "sealed") && result) {
-      const t = setTimeout(() => setScreen("done"), 300);
-      return () => clearTimeout(t);
-    }
-  }, [files, screen, result]);
 
   // Auto-download ciphertext on entering done (once) — only when there's no
   // backend to host it. Remote mode keeps the ciphertext on the server.
@@ -1592,9 +1697,10 @@ function App() {
 
   let hero;
   const active = screen === "encrypting" || screen === "done";
-  if (screen === "empty") hero = <HeroEmpty onBrowse={browse} onSettings={() => setScreen("settings")} ttl={ttl} maxDL={maxDL} />;
+  if (screen === "empty") hero = <HeroEmpty onBrowse={browse} onSettings={() => setScreen("settings")} onCompose={() => setScreen("compose")} ttl={ttl} maxDL={maxDL} />;
+  else if (screen === "compose") hero = <HeroCompose onSend={(files) => acceptFiles(files)} onClose={() => setScreen("empty")} />;
   else if (screen === "drag") hero = <HeroDragOver files={files} />;
-  else if (screen === "encrypting") hero = <HeroEncrypting files={files} />;
+  else if (screen === "encrypting") hero = <HeroEncrypting files={files} stage={stage} uploadPct={uploadPct} />;
   else if (screen === "done") hero = <HeroDone files={files} onReset={reset} link={result?.link} onDownload={saveAgain} mode={result?.mode} passphrase={result?.passphrase} onBurn={burnNow} canBurn={result?.mode === "remote" && !!result?.id} />;
   else if (screen === "settings") hero = <HeroSettings
     ttl={ttl} setTtl={setTtl}
@@ -1780,17 +1886,26 @@ function HeroDecrypt({ onPick, status, error, inputMode, passphraseExpected, pas
   );
 }
 
-function HeroDecrypted({ outputs, onReset, onDownload }) {
+function HeroDecrypted({ outputs, onReset, onDownload, onSaveAll, savedSet }) {
   return (
     <div style={{
       position: "relative", minHeight: 360, borderRadius: 6,
       border: `1px solid ${theme.accentLine}`,
       background: `radial-gradient(circle at 30% 0%, ${theme.accentSoft}, ${theme.panel} 60%)`,
-      padding: 24, display: "flex", flexDirection: "column", gap: 18,
+      padding: 24, display: "flex", flexDirection: "column", gap: 14,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <Tag secure><IcCheck size={11} color={theme.secure} /> decrypted</Tag>
         <Tag>{outputs.length} file{outputs.length === 1 ? "" : "s"} · {fmtSize(outputs.reduce((a, o) => a + o.data.length, 0))}</Tag>
+      </div>
+      <div style={{
+        padding: "10px 14px",
+        border: `1px solid ${theme.warn}`, borderRadius: 4,
+        background: theme.panelLo,
+        fontFamily: "var(--mono)", fontSize: 11, color: theme.warn,
+        letterSpacing: "0.04em",
+      }}>
+        ⚠ this link is now spent — save before closing the tab.
       </div>
       <div style={{
         border: `1px solid ${theme.border}`,
@@ -1809,23 +1924,33 @@ function HeroDecrypted({ outputs, onReset, onDownload }) {
             </div>
             <button onClick={() => onDownload(o)} style={{
               padding: "8px 14px",
-              border: `1px solid ${theme.accentLine}`,
-              background: theme.accentSoft, color: theme.accent,
+              border: `1px solid ${savedSet?.has(o.name) ? theme.secure : theme.accentLine}`,
+              background: savedSet?.has(o.name) ? "transparent" : theme.accentSoft,
+              color: savedSet?.has(o.name) ? theme.secure : theme.accent,
               fontFamily: "var(--mono)", fontSize: 11,
               letterSpacing: "0.18em", textTransform: "uppercase",
               borderRadius: 3, cursor: "pointer",
-            }}>SAVE</button>
+            }}>{savedSet?.has(o.name) ? "✓ SAVED" : "SAVE"}</button>
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", fontFamily: "var(--mono)", fontSize: 10.5, color: theme.inkDim }}>
-        <span>files written to your downloads · plaintext never touched server</span>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={onSaveAll} style={{
+          padding: "10px 18px",
+          border: `1px solid ${theme.accentLine}`,
+          background: theme.accentSoft, color: theme.accent,
+          fontFamily: "var(--mono)", fontSize: 12,
+          letterSpacing: "0.18em", textTransform: "uppercase",
+          borderRadius: 3, cursor: "pointer", fontWeight: 700,
+        }}>SAVE ALL ({outputs.length})</button>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: theme.inkDim, flex: 1, minWidth: 0 }}>
+          plaintext never touched the server · save individual files with their SAVE button
+        </span>
         <button onClick={onReset} style={{
-          marginLeft: "auto",
           padding: "8px 14px",
           border: `1px solid ${theme.border}`,
           background: theme.panelHi, color: theme.ink,
-          fontFamily: "var(--mono)", fontSize: 11,
+          fontFamily: "var(--mono)", fontSize: 10,
           letterSpacing: "0.18em", textTransform: "uppercase",
           borderRadius: 3, cursor: "pointer",
         }}>RESET</button>
@@ -1834,12 +1959,41 @@ function HeroDecrypted({ outputs, onReset, onDownload }) {
   );
 }
 
+function HeroGone({ reason }) {
+  return (
+    <div style={{
+      position: "relative", minHeight: 360, borderRadius: 6,
+      border: `1px solid ${theme.danger}`,
+      background: theme.panel,
+      padding: 40,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+    }}>
+      <div style={{
+        width: 76, height: 76, borderRadius: 8,
+        border: `1px solid ${theme.danger}`,
+        background: "transparent",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--mono)", fontSize: 44, fontWeight: 700, color: theme.danger,
+      }}>×</div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 22, fontWeight: 700, color: theme.ink, letterSpacing: "0.02em" }}>
+        share <span style={{ color: theme.danger }}>spent</span>
+      </div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: theme.inkDim, textAlign: "center", maxWidth: 480, lineHeight: 1.7 }}>
+        {reason || "this link has already been read or has expired."}<br />
+        the ciphertext was purged from the vault on first download.<br />
+        ask the sender to issue a new one.
+      </div>
+    </div>
+  );
+}
+
 function DecryptApp({ keyBytes, id, passphraseMode }) {
-  // phase: await | fetching | needPass | working | ok | err.
+  // phase: await | fetching | needPass | working | ok | err | gone.
   //   keyBytes + id   → fetch then v1 decrypt
   //   keyBytes only   → v1 decrypt of dropped file
   //   passphraseMode + id → fetch ciphertext, prompt passphrase, v2 decrypt
   //   passphraseMode only → drop file, prompt passphrase, v2 decrypt
+  //   gone → server returned 404/410 (link spent or expired)
   const [phase, setPhase] = useState(id ? "fetching" : "await");
   const [outputs, setOutputs] = useState([]);
   const [error, setError] = useState(null);
@@ -1848,9 +2002,9 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
   const narrow = useNarrow();
   const [passphrase, setPassphrase] = useState("");
   const [pendingBlob, setPendingBlob] = useState(null); // bytes awaiting passphrase
+  const [saved, setSaved] = useState(() => new Set()); // names already saved
   const fileInputRef = useRef(null);
   const dragDepth = useRef(0);
-  const downloadedRef = useRef(false);
   const fetchedRef = useRef(false);
 
   const decryptV1 = useCallback(async (blob) => {
@@ -1921,6 +2075,11 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
         const res = await fetch(`/api/d/${id}`);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
+          if (res.status === 410 || res.status === 404) {
+            setError(body.error || (res.status === 410 ? "expired" : "not found"));
+            setPhase("gone");
+            return;
+          }
           throw new Error(body.error || `fetch failed (${res.status})`);
         }
         const ab = await res.arrayBuffer();
@@ -1962,24 +2121,26 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
     };
   }, [handleFile]);
 
-  // auto-download all on first success
-  useEffect(() => {
-    if (phase === "ok" && !downloadedRef.current) {
-      downloadedRef.current = true;
-      outputs.forEach((o, i) => {
-        setTimeout(() => downloadBytes(o.name, o.data, o.type), i * 120);
-      });
-    }
-  }, [phase, outputs]);
+  // No auto-download. The recipient must explicitly save — the link is
+  // already spent on the server side and we want them to feel the urgency
+  // before they close the tab.
 
   const reset = () => {
     setPhase(id ? "fetching" : "await"); setOutputs([]); setError(null);
     setPassphrase(""); setPendingBlob(null);
-    downloadedRef.current = false;
+    setSaved(new Set());
     fetchedRef.current = false;
   };
   const browse = () => fileInputRef.current?.click();
-  const saveOne = (o) => downloadBytes(o.name, o.data, o.type);
+  const saveOne = (o) => {
+    downloadBytes(o.name, o.data, o.type);
+    setSaved((prev) => { const n = new Set(prev); n.add(o.name); return n; });
+  };
+  const saveAll = () => {
+    outputs.forEach((o, i) => {
+      setTimeout(() => saveOne(o), i * 120);
+    });
+  };
 
   const inPassPrompt = phase === "needPass";
   const status = phase === "fetching" ? "fetching ciphertext · then decrypt"
@@ -1987,22 +2148,28 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
     : null;
   const subtitle = phase === "ok" ? "decrypted · plaintext recovered"
     : phase === "err" ? "decrypt failed · key or ciphertext invalid"
+    : phase === "gone" ? "share spent · ciphertext purged"
     : phase === "needPass" ? "passphrase required"
     : phase === "fetching" ? "fetching from vault"
     : phase === "working" ? "decrypting in-browser"
     : "recipient mode · awaiting ciphertext";
 
-  const hero = phase === "ok"
-    ? <HeroDecrypted outputs={outputs} onReset={reset} onDownload={saveOne} />
-    : <HeroDecrypt
-        onPick={browse}
-        status={status}
-        error={(phase === "err" || phase === "needPass") ? error : null}
-        inputMode={inPassPrompt}
-        passphraseExpected={passphraseMode || inPassPrompt}
-        passphrase={passphrase}
-        setPassphrase={setPassphrase}
-        onSubmitPassphrase={submitPassphrase} />;
+  let hero;
+  if (phase === "ok") {
+    hero = <HeroDecrypted outputs={outputs} onReset={reset} onDownload={saveOne} onSaveAll={saveAll} savedSet={saved} />;
+  } else if (phase === "gone") {
+    hero = <HeroGone reason={error} />;
+  } else {
+    hero = <HeroDecrypt
+      onPick={browse}
+      status={status}
+      error={(phase === "err" || phase === "needPass") ? error : null}
+      inputMode={inPassPrompt}
+      passphraseExpected={passphraseMode || inPassPrompt}
+      passphrase={passphrase}
+      setPassphrase={setPassphrase}
+      onSubmitPassphrase={submitPassphrase} />;
+  }
 
   return (
     <div style={{
