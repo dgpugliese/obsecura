@@ -2,7 +2,7 @@
 
 **Zero-knowledge ephemeral file transfer.** Files are encrypted in your browser with AES-256-GCM before they ever leave the page. The server stores ciphertext only — keys never touch the wire — and the share link self-destructs after a configurable read count or TTL.
 
-→ **Live:** https://obscura.the-it-visionary.workers.dev
+→ **Live:** https://obscr.app
 
 ---
 
