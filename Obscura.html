@@ -1198,10 +1198,17 @@ function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnable
           <span>ttl</span><span>01</span>
         </div>
         <div style={{ fontFamily: "var(--mono)", fontSize: 28, fontWeight: 700, color: theme.ink }}>{ttl}<span style={{ color: theme.inkFaint }}>h</span></div>
-        <input type="range" min={1} max={168} value={ttl} onChange={(e) => setTtl(+e.target.value)}
-          style={{ width: "100%", marginTop: 10, accentColor: theme.accent }} />
-        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 9, color: theme.inkFaint, marginTop: 4 }}>
-          <span>1h</span><span>24h</span><span>72h</span><span>168h</span>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 12 }}>
+          {[1, 2, 4, 8, 12, 24].map((n) => (
+            <button key={n} onClick={() => setTtl(n)} style={{
+              padding: "8px 0",
+              border: `1px solid ${ttl === n ? theme.accentLine : theme.border}`,
+              background: ttl === n ? theme.accentSoft : "transparent",
+              color: ttl === n ? theme.accent : theme.inkDim,
+              fontFamily: "var(--mono)", fontSize: 11,
+              borderRadius: 3, cursor: "pointer",
+            }}>{n}h</button>
+          ))}
         </div>
         <div style={{ marginTop: 12, fontFamily: "var(--mono)", fontSize: 10, color: theme.inkDim, lineHeight: 1.7 }}>
           after which all ciphertext<br/>is unrecoverable.
@@ -1332,7 +1339,11 @@ function App() {
     return localStorage.getItem("obscura.layout") || "centered";
   });
   const setLayout = (v) => { setLayoutState(v); localStorage.setItem("obscura.layout", v); };
-  const [ttl, setTtl] = useState(() => clampNum(parseInt(localStorage.getItem("obscura.ttl"), 10), 1, 168, 24));
+  const [ttl, setTtl] = useState(() => {
+    const allowed = [1, 2, 4, 8, 12, 24];
+    const raw = parseInt(localStorage.getItem("obscura.ttl"), 10);
+    return allowed.includes(raw) ? raw : 24;
+  });
   const [maxDL, setMaxDL] = useState(() => clampNum(parseInt(localStorage.getItem("obscura.maxdl"), 10), 1, 100, 1));
   const [passEnabled, setPassEnabled] = useState(() => localStorage.getItem("obscura.passEnabled") === "1");
   const [passphrase, setPassphrase] = useState(() => generatePassphrase());
