@@ -425,13 +425,16 @@ function unpackFiles(plain) {
 }
 
 async function encryptBlob(plain, key) {
+  const keyRaw = new Uint8Array(await crypto.subtle.exportKey("raw", key));
   const iv = crypto.getRandomValues(new Uint8Array(12));
+  const t0 = performance.now();
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plain));
+  const encryptMs = performance.now() - t0;
   const out = new Uint8Array(MAGIC.length + iv.length + ct.length);
   out.set(MAGIC, 0);
   out.set(iv, MAGIC.length);
   out.set(ct, MAGIC.length + iv.length);
-  return out;
+  return { blob: out, encryptMs, kdfMs: 0, dataKey: keyRaw };
 }
 
 async function decryptBlob(blob, key) {
@@ -473,11 +476,15 @@ async function encryptBlobV2(plain, passphrase) {
   const dek = await generateKey();
   const dekRaw = await exportRawKey(dek);
   const salt = crypto.getRandomValues(new Uint8Array(16));
+  const tKdf = performance.now();
   const kek = await deriveKEK(passphrase, salt);
+  const kdfMs = performance.now() - tKdf;
   const wrapIv = crypto.getRandomValues(new Uint8Array(12));
   const wrapped = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: wrapIv }, kek, dekRaw));
   const dataIv = crypto.getRandomValues(new Uint8Array(12));
+  const tEnc = performance.now();
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: dataIv }, dek, plain));
+  const encryptMs = performance.now() - tEnc;
   const out = new Uint8Array(4 + 16 + 12 + 48 + 12 + ct.length);
   let off = 0;
   out.set(MAGIC_V2, off); off += 4;
@@ -486,7 +493,7 @@ async function encryptBlobV2(plain, passphrase) {
   out.set(wrapped, off); off += 48;
   out.set(dataIv, off); off += 12;
   out.set(ct, off);
-  return out;
+  return { blob: out, encryptMs, kdfMs, dataKey: dekRaw };
 }
 
 async function decryptBlobV2(blob, passphrase) {
@@ -503,6 +510,93 @@ async function decryptBlobV2(blob, passphrase) {
   const dek = await importRawKey(dekRaw);
   return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: dataIv }, dek, ct));
 }
+
+// ============================================================
+// Real-data helpers (replace decorative animations)
+// ============================================================
+async function sha256Hex(bytes) {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  let s = "";
+  for (let i = 0; i < h.length; i++) s += h[i].toString(16).padStart(2, "0");
+  return s;
+}
+
+// Format the first 12 hex chars of a SHA-256 as XX:XX:XX:XX:XX:XX over three
+// rows. Both sender and recipient compute it from the same data key, so it's
+// usable as an OOB verification token.
+function fingerprintRows(hex) {
+  const top = hex.slice(0, 12).toUpperCase();
+  const pair = (s, i) => s.slice(i, i + 2);
+  return [
+    `${pair(top, 0)}:${pair(top, 2)}:${pair(top, 4)}`,
+    `${pair(top, 6)}:${pair(top, 8)}:${pair(top, 10)}`,
+  ];
+}
+
+// Shannon entropy in bits/byte for a given Uint8Array. AES-GCM ciphertext
+// is statistically indistinguishable from random, so this should land within
+// a few thousandths of 8.0 — making the displayed number a real signal of
+// "the encryption produced ciphertext that looks uniform" instead of a
+// hardcoded 7.998.
+function shannonEntropy(bytes) {
+  if (!bytes || !bytes.length) return 0;
+  // Sample at most 64 KiB so we don't stall the main thread on big payloads.
+  const SAMPLE = 65536;
+  let view = bytes;
+  if (bytes.length > SAMPLE) {
+    const stride = Math.floor(bytes.length / SAMPLE);
+    const sampled = new Uint8Array(SAMPLE);
+    for (let i = 0; i < SAMPLE; i++) sampled[i] = bytes[i * stride];
+    view = sampled;
+  }
+  const counts = new Uint32Array(256);
+  for (let i = 0; i < view.length; i++) counts[view[i]]++;
+  let h = 0;
+  const n = view.length;
+  for (let i = 0; i < 256; i++) {
+    if (!counts[i]) continue;
+    const p = counts[i] / n;
+    h -= p * Math.log2(p);
+  }
+  return h;
+}
+
+function fmtMs(ms) {
+  if (ms == null) return "—";
+  if (ms < 1) return "<1ms";
+  if (ms < 1000) return Math.round(ms) + "ms";
+  return (ms / 1000).toFixed(2) + "s";
+}
+
+function fmtThroughput(bytes, ms) {
+  if (!bytes || !ms) return "—";
+  const mbps = bytes / (1024 * 1024) / (ms / 1000);
+  if (mbps >= 100) return mbps.toFixed(0) + " MB/s";
+  return mbps.toFixed(1) + " MB/s";
+}
+
+function fmtBytes(b) {
+  if (b == null) return "—";
+  if (b < 1024) return b + " B";
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + " KB";
+  return (b / 1024 / 1024).toFixed(2) + " MB";
+}
+
+function hexLine(bytes) {
+  if (!bytes || !bytes.length) return "";
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) {
+    s += bytes[i].toString(16).padStart(2, "0");
+    if (i < bytes.length - 1) s += " ";
+  }
+  return s;
+}
+
+// Build identifiers injected by esbuild --define at build time. Falls back
+// to "dev" in environments where the define wasn't applied (e.g. raw JSX
+// loaded without a build step).
+const BUILD_SHA = (typeof __BUILD_SHA__ !== "undefined") ? __BUILD_SHA__ : "dev";
+const BUILD_TIME = (typeof __BUILD_TIME__ !== "undefined") ? __BUILD_TIME__ : "";
 
 function useNarrow(threshold = 720) {
   const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < threshold);
@@ -612,13 +706,28 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
             <IcLock size={12} color={theme.accent} />
           </div>
           <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.32em", color: theme.ink }}>OBSCURA</span>
-          {!narrow && <span style={{ fontSize: 10, color: theme.inkFaint, letterSpacing: "0.18em" }}>v0.4.2 · MAINNET</span>}
+          {!narrow && (
+            <a
+              href={BUILD_SHA && BUILD_SHA !== "dev" ? `https://github.com/dgpugliese/Obsecura/commit/${BUILD_SHA}` : "#"}
+              target="_blank"
+              rel="noopener"
+              title={BUILD_TIME ? `built ${BUILD_TIME}` : "build identifier"}
+              style={{
+                fontSize: 10, color: theme.inkFaint, letterSpacing: "0.18em",
+                textDecoration: "none",
+              }}
+            >v0.5 · build {BUILD_SHA}</a>
+          )}
         </div>
         {!narrow && (
           <>
             <div style={{ width: 1, height: 18, background: theme.border, margin: "0 4px" }} />
             <span style={{ fontSize: 11, color: theme.inkDim, whiteSpace: "nowrap" }}>
-              session <span style={{ color: theme.ink }}>7F3A·EF21·9B02·D4C8</span>
+              <a href="/transparency.html" style={{ color: theme.inkDim, textDecoration: "none" }}>transparency</a>
+              {" · "}
+              <a href="/status.html" style={{ color: theme.inkDim, textDecoration: "none" }}>status</a>
+              {" · "}
+              <a href="/PRIVACY.md" style={{ color: theme.inkDim, textDecoration: "none" }}>privacy</a>
             </span>
           </>
         )}
@@ -637,16 +746,28 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
 // ============================================================
 // Spec strip
 // ============================================================
-function SpecStrip({ active = false, narrow = false }) {
+function SpecStrip({ active = false, narrow = false, stats = null }) {
+  // Real entropy from the most recent encrypt; falls back to "—" before any
+  // ciphertext exists. AES-GCM output is statistically uniform, so once we
+  // have data this lands at ~7.99x.
+  const entropy = stats?.ctEntropy;
+  const entropyWhole = entropy != null ? Math.floor(entropy) : null;
+  const entropyFrac = entropy != null
+    ? entropy.toFixed(3).split(".")[1]
+    : null;
+  // Visual fill from real entropy (8 bits/byte = full bar). When idle, show
+  // an empty track instead of an animated decoration.
+  const entropyPct = entropy != null ? Math.min(100, (entropy / 8) * 100) : 0;
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: narrow ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 14 }}>
       <Panel label="cipher" right="01">
         <div style={{ padding: "14px 14px 12px" }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>AES-256<span style={{ color: theme.accent }}>/GCM</span></div>
           <div style={{ marginTop: 8, fontSize: 10, color: theme.inkDim, fontFamily: "var(--mono)", lineHeight: 1.7 }}>
-            <div>nonce ··· <HexStream len={16} color={theme.ink} speed={140} paused={!active} /></div>
+            <div>nonce ··· 96 bit · per-message random</div>
             <div>tag ····· 128 bit · authenticated</div>
-            <div>kdf ····· argon2id · m=64MB t=3</div>
+            <div>kdf ····· argon2id · m=64MB t=3 (passphrase mode)</div>
           </div>
         </div>
       </Panel>
@@ -654,9 +775,9 @@ function SpecStrip({ active = false, narrow = false }) {
         <div style={{ padding: "14px 14px 12px" }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>ZERO–<span style={{ color: theme.accent }}>KNOWLEDGE</span></div>
           <div style={{ marginTop: 8, fontSize: 10, color: theme.inkDim, fontFamily: "var(--mono)", lineHeight: 1.7 }}>
-            <div>operator can read ···· <span style={{ color: theme.ink }}>NULL</span></div>
-            <div>keys leave device ···· <span style={{ color: theme.ink }}>NEVER</span></div>
-            <div>logs persisted ······· <span style={{ color: theme.ink }}>0 bytes</span></div>
+            <div>operator can read ···· <span style={{ color: theme.ink }}>ciphertext only</span></div>
+            <div>keys leave device ···· <span style={{ color: theme.ink }}>never</span></div>
+            <div>app access logs ······ <span style={{ color: theme.ink }}>none</span></div>
           </div>
         </div>
       </Panel>
@@ -666,18 +787,27 @@ function SpecStrip({ active = false, narrow = false }) {
           <div style={{ marginTop: 8, fontSize: 10, color: theme.inkDim, fontFamily: "var(--mono)", lineHeight: 1.7 }}>
             <div>self-destructs after read</div>
             <div>or <Countdown color={theme.ink} /> remaining</div>
-            <div>shred mode ····· DoD 5220.22-M</div>
+            <div>purge ··· R2 delete + KV delete</div>
           </div>
         </div>
       </Panel>
       <Panel label="entropy" right="04">
         <div style={{ padding: "14px 14px 12px" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>7.<span style={{ color: theme.accent }}>998</span></div>
+            {entropy != null ? (
+              <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>
+                {entropyWhole}.<span style={{ color: theme.accent }}>{entropyFrac}</span>
+              </div>
+            ) : (
+              <div style={{ fontSize: 22, fontWeight: 700, color: theme.inkFaint, fontFamily: "var(--mono)" }}>—.<span>———</span></div>
+            )}
             <div style={{ fontSize: 10, color: theme.inkFaint, fontFamily: "var(--mono)" }}>bits/byte</div>
           </div>
-          <div style={{ marginTop: 6 }}>
-            <EntropyBar width={250} height={32} color={theme.accent} dim={theme.inkFaint} paused={!active} />
+          <div style={{ marginTop: 8, height: 6, background: theme.panelLo, border: `1px solid ${theme.border}`, borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ width: entropyPct + "%", height: "100%", background: theme.accent, transition: "width 0.4s ease-out" }} />
+          </div>
+          <div style={{ marginTop: 6, fontSize: 9, color: theme.inkFaint, fontFamily: "var(--mono)", letterSpacing: "0.06em" }}>
+            {entropy != null ? `shannon · ${stats.ctBytes >= 65536 ? "64KB sample" : "full ciphertext"}` : "awaiting payload"}
           </div>
         </div>
       </Panel>
@@ -688,43 +818,75 @@ function SpecStrip({ active = false, narrow = false }) {
 // ============================================================
 // Left rail
 // ============================================================
-function LeftRail({ screen, active = false }) {
+function LeftRail({ screen, active = false, stats = null, events = [], passEnabled = false }) {
+  const fpRows = stats?.keyFpHex ? fingerprintRows(stats.keyFpHex) : null;
+  // Audit ledger is empty until a real event fires. We render whatever's
+  // there with a relative timestamp; no placeholder lines that lie about
+  // having executed.
+  const recentEvents = events.slice(-7);
+  const fmtT = (ms) => {
+    const s = Math.floor(ms / 1000);
+    return `+${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}.${String(Math.floor(ms % 1000)).padStart(3, "0").slice(0, 2)}`;
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Panel label="status" right={<Dot color={theme.secure} pulse />}>
         <div style={{ padding: 12 }}>
           <div style={{ fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.85, color: theme.inkDim }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>uplink</span><span style={{ color: theme.secure }}>● TLS 1.3</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>handshake</span><span style={{ color: theme.ink }}>X25519</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>integrity</span><span style={{ color: theme.ink }}>BLAKE3</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>cipher</span><span style={{ color: theme.ink }}>AES-256-GCM</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>auth</span><span style={{ color: theme.ink }}>GCM tag · 128b</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>transport</span><span style={{ color: theme.ink }}>TLS · browser</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>kdf</span><span style={{ color: passEnabled ? theme.ink : theme.inkFaint }}>{passEnabled ? "argon2id · m=64MB" : "off"}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between" }}><span>screen</span><span style={{ color: theme.accent }}>{screen}</span></div>
           </div>
         </div>
       </Panel>
       <Panel label="key fingerprint">
         <div style={{ padding: "12px 12px 10px" }}>
-          <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: theme.ink, letterSpacing: "0.06em", lineHeight: 1.7 }}>
-            <ScrambleText value={"4F:A2:9B:C0:51:7E"} speed={120} color={theme.ink} /><br />
-            <ScrambleText value={"83:DD:4A:C7:99:B2"} speed={120} color={theme.ink} /><br />
-            <ScrambleText value={"60:1F:E8:24:AB:7C"} speed={120} color={theme.ink} />
-          </div>
+          {fpRows ? (
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: theme.ink, letterSpacing: "0.06em", lineHeight: 1.7 }}>
+              {fpRows[0]}<br />
+              {fpRows[1]}
+            </div>
+          ) : (
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: theme.inkFaint, lineHeight: 1.7 }}>
+              [ no key generated yet ]
+            </div>
+          )}
           <div style={{ marginTop: 8, fontSize: 10, color: theme.inkFaint, fontFamily: "var(--mono)" }}>
-            ed25519 · derived in-browser
+            sha256(data key) · first 48 bits · read OOB to verify
           </div>
         </div>
       </Panel>
       <Panel label="recent ciphertext">
-        <div style={{ padding: "10px 12px 12px" }}>
-          <HexDump rows={7} cols={10} color={theme.accent} dim={theme.inkFaint} speed={140} paused={!active} />
+        <div style={{ padding: "10px 12px 12px", fontFamily: "var(--mono)", fontSize: 10.5, lineHeight: 1.65 }}>
+          {stats?.ctHead ? (
+            <>
+              <div style={{ color: theme.inkFaint, fontSize: 9, letterSpacing: "0.08em" }}>HEAD · {stats.mode === "v2" ? "OBS2" : "OBS1"} · 16 of {stats.ctBytes.toLocaleString()} B</div>
+              <div style={{ color: theme.accent, marginTop: 4, wordBreak: "break-all" }}>{hexLine(stats.ctHead)}</div>
+              <div style={{ color: theme.inkFaint, fontSize: 9, letterSpacing: "0.08em", marginTop: 8 }}>TAIL · last 16</div>
+              <div style={{ color: theme.accent, marginTop: 4, wordBreak: "break-all" }}>{hexLine(stats.ctTail)}</div>
+            </>
+          ) : (
+            <div style={{ color: theme.inkFaint }}>
+              [ no ciphertext yet ]<br />
+              <span style={{ fontSize: 9, letterSpacing: "0.08em" }}>OBS1 = magic(4) · iv(12) · ct+tag</span><br />
+              <span style={{ fontSize: 9, letterSpacing: "0.08em" }}>OBS2 = magic(4) · salt(16) · wrapIv(12) · wrappedDek(48) · iv(12) · ct+tag</span>
+            </div>
+          )}
         </div>
       </Panel>
       <Panel label="audit ledger">
         <div style={{ padding: 12, fontFamily: "var(--mono)", fontSize: 10.5, color: theme.inkDim, lineHeight: 1.85 }}>
-          <div><span style={{ color: theme.inkFaint }}>00:00:01</span> session.init</div>
-          <div><span style={{ color: theme.inkFaint }}>00:00:01</span> kdf.argon2id.ok</div>
-          <div><span style={{ color: theme.inkFaint }}>00:00:02</span> handshake.x25519</div>
-          <div><span style={{ color: theme.inkFaint }}>00:00:02</span> entropy.pool=98%</div>
-          <div><span style={{ color: theme.inkFaint }}>00:00:03</span> ready <span style={{ color: theme.secure }}>✓</span></div>
+          {recentEvents.length === 0 ? (
+            <div style={{ color: theme.inkFaint }}>[ no events yet ]</div>
+          ) : recentEvents.map((e, i) => (
+            <div key={i}>
+              <span style={{ color: theme.inkFaint }}>{fmtT(e.t)}</span>{" "}
+              <span style={{ color: theme.ink }}>{e.name}</span>
+            </div>
+          ))}
         </div>
       </Panel>
     </div>
@@ -769,7 +931,7 @@ function ZKPipelineCompact({ active = false }) {
   );
 }
 
-function RightRail({ files, active = false }) {
+function RightRail({ files, active = false, stats = null }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Panel label="payload" right={`${files.length} file${files.length === 1 ? "" : "s"}`}>
@@ -806,13 +968,36 @@ function RightRail({ files, active = false }) {
       </Panel>
       <Panel label="vitals">
         <div style={{ padding: 12, fontFamily: "var(--mono)", fontSize: 10.5, lineHeight: 1.85, color: theme.inkDim }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>cpu / aes-ni</span><span style={{ color: theme.ink }}>hw-accelerated</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>memory</span><span style={{ color: theme.ink }}>72 MB / 4 GB</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>workers</span><span style={{ color: theme.ink }}>×8</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>throughput</span><span style={{ color: theme.accent }}>118.4 MB/s</span></div>
-          <div style={{ marginTop: 8 }}>
-            <EntropyBar width={236} height={28} color={theme.accent} dim={theme.inkFaint} speed={130} paused={!active} />
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>crypto</span>
+            <span style={{ color: theme.ink }}>webcrypto · subtle</span>
           </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>plaintext</span>
+            <span style={{ color: stats ? theme.ink : theme.inkFaint }}>{stats ? fmtBytes(stats.ptBytes) : "—"}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>ciphertext</span>
+            <span style={{ color: stats ? theme.ink : theme.inkFaint }}>
+              {stats ? `${fmtBytes(stats.ctBytes)} (+${stats.ctBytes - stats.ptBytes}B)` : "—"}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>encrypt</span>
+            <span style={{ color: stats ? theme.ink : theme.inkFaint }}>{stats ? fmtMs(stats.encryptMs) : "—"}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>throughput</span>
+            <span style={{ color: stats ? theme.accent : theme.inkFaint }}>
+              {stats ? fmtThroughput(stats.ptBytes, stats.encryptMs) : "—"}
+            </span>
+          </div>
+          {stats?.kdfMs ? (
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>argon2id</span>
+              <span style={{ color: theme.ink }}>{fmtMs(stats.kdfMs)}</span>
+            </div>
+          ) : null}
         </div>
       </Panel>
       <Panel label="zk transit" right={active ? "live" : "idle"}>
@@ -1469,6 +1654,11 @@ function App() {
   const [maxDL, setMaxDL] = useState(() => clampNum(parseInt(localStorage.getItem("obscura.maxdl"), 10), 1, 100, 3));
   const [passEnabled, setPassEnabled] = useState(() => localStorage.getItem("obscura.passEnabled") === "1");
   const [passphrase, setPassphrase] = useState(() => generatePassphrase());
+  // Real metrics from the most recent encrypt run. Populated by acceptFiles;
+  // null before any encryption has happened. Components fall back to honest
+  // placeholders ("—", "no events yet") when fields are missing.
+  const [cryptoStats, setCryptoStats] = useState(null);
+  const [auditEvents, setAuditEvents] = useState([]);
   useEffect(() => { localStorage.setItem("obscura.ttl", String(ttl)); }, [ttl]);
   useEffect(() => { localStorage.setItem("obscura.maxdl", String(maxDL)); }, [maxDL]);
   useEffect(() => { localStorage.setItem("obscura.passEnabled", passEnabled ? "1" : "0"); }, [passEnabled]);
@@ -1501,21 +1691,31 @@ function App() {
     setUploadPct(0);
     setScreen("encrypting");
 
-    // Stage helper — both updates `stage` and reflects it onto each file
-    // entry in the right rail so the per-file progress shows real values
-    // instead of a simulated tick.
+    // Audit ledger: append a real timestamped event. Kept short — only
+    // surface what a curious user could verify themselves by reading the
+    // source.
+    const events = [];
+    const t0Wall = performance.now();
+    const evt = (name) => {
+      events.push({ t: performance.now() - t0Wall, name });
+      setAuditEvents([...events]);
+    };
+
     const setStageWithFiles = (s, pct, state) => {
       setStage(s);
       setFiles((prev) => prev.map((f) => ({ ...f, state, pct })));
     };
 
     try {
+      evt("session.init");
       setStageWithFiles("packing", 8, "queued");
       const plain = await packFiles(fileArr);
+      evt(`files.packed (${plain.byteLength}B)`);
 
       setStageWithFiles("encrypting", 35, "encrypting");
       const base = `${location.origin}${location.pathname}`;
       let blob, keyEnc = null, passUsed = null;
+      let encMeta = null;
       if (passEnabled) {
         if (typeof argon2 === "undefined" || !argon2.hash) {
           alert("argon2 wasm hasn't loaded yet — disabling passphrase for this send.");
@@ -1528,12 +1728,34 @@ function App() {
           throw new Error("empty passphrase");
         }
         passUsed = trimmed;
-        blob = await encryptBlobV2(plain, passUsed);
+        encMeta = await encryptBlobV2(plain, passUsed);
+        blob = encMeta.blob;
+        evt(`argon2id.derive (${fmtMs(encMeta.kdfMs)})`);
       } else {
+        evt("key.generated");
         const key = await generateKey();
-        blob = await encryptBlob(plain, key);
+        encMeta = await encryptBlob(plain, key);
+        blob = encMeta.blob;
         keyEnc = b64uEncode(await exportRawKey(key));
       }
+      evt(`aes-gcm.encrypt (${fmtMs(encMeta.encryptMs)})`);
+
+      // Real fingerprint + entropy + ciphertext sample for the side panels.
+      const keyFpHex = await sha256Hex(encMeta.dataKey);
+      const ctEntropy = shannonEntropy(blob);
+      const ctHead = blob.subarray(0, Math.min(16, blob.length));
+      const ctTail = blob.subarray(Math.max(0, blob.length - 16));
+      setCryptoStats({
+        keyFpHex,
+        ptBytes: plain.byteLength,
+        ctBytes: blob.byteLength,
+        encryptMs: encMeta.encryptMs,
+        kdfMs: encMeta.kdfMs || 0,
+        ctEntropy,
+        ctHead,
+        ctTail,
+        mode: passEnabled ? "v2" : "v1",
+      });
 
       setStageWithFiles("uploading", 50, "encrypting");
       const upload = await tryUpload(blob, { ttl, maxDL }, (pct) => {
@@ -1542,6 +1764,7 @@ function App() {
       });
 
       if (upload?.id) {
+        evt(`share.created (id=${upload.id.slice(0, 8)}…)`);
         const link = passEnabled
           ? `${base}#i=${upload.id}`
           : `${base}#i=${upload.id}&k=${keyEnc}`;
@@ -1623,6 +1846,7 @@ function App() {
 
   const reset = () => {
     setFiles([]); setResult(null); downloadedRef.current = false;
+    setCryptoStats(null); setAuditEvents([]);
     setScreen("empty");
   };
   const browse = () => fileInputRef.current?.click();
@@ -1708,13 +1932,13 @@ function App() {
             gridTemplateColumns: "260px 1fr 280px",
             gap: 18, minHeight: 0,
           }}>
-            <LeftRail screen={screen} active={active} />
+            <LeftRail screen={screen} active={active} stats={cryptoStats} events={auditEvents} passEnabled={passEnabled} />
             <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
               {hero}
-              <SpecStrip active={active} />
+              <SpecStrip active={active} stats={cryptoStats} />
               <CommandStrip screen={screen} />
             </div>
-            <RightRail files={files} active={active} />
+            <RightRail files={files} active={active} stats={cryptoStats} />
           </div>
         )}
 
@@ -1729,7 +1953,7 @@ function App() {
             }}>
               {hero}
               <PayloadInline files={files} />
-              <SpecStrip active={active} narrow={narrow} />
+              <SpecStrip active={active} narrow={narrow} stats={cryptoStats} />
               <CommandStrip screen={screen} />
             </div>
           </div>

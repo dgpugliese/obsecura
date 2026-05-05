@@ -1,0 +1,4 @@
+{
+  "_doc": "Manually maintained incident history. Newest first. Edit this file in the repo and redeploy. Each entry: { date: 'YYYY-MM-DD', title, severity: 'minor'|'major'|'critical', startedAt: ISO, resolvedAt: ISO|null, durationMinutes: number|null, summary }.",
+  "incidents": []
+}

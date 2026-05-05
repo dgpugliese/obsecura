@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>OBSCURA — transparency</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="OBSCURA transparency report. Daily aggregate counts of shares created, burned, expired, and exhausted. No per-share data." />
+<meta name="theme-color" content="#08090c" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090c;
+    --panel: #0e1016;
+    --panel-lo: #0a0c12;
+    --border: #1c2030;
+    --ink: #d6dae5;
+    --ink-dim: #7a808e;
+    --ink-faint: #4a4f5e;
+    --accent: #6ee7b7;
+    --warn: #f5c451;
+    --crit: #ef6f6f;
+    --mono: "JetBrains Mono", "Fira Code", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
+  .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
+  .nav a { color: var(--ink-dim); margin-left: 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav a.active { color: var(--ink); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; }
+  .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
+  .panel > .body { padding: 14px 16px; }
+  .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .totals .cell { background: var(--panel-lo); border: 1px solid var(--border); padding: 14px; border-radius: 3px; }
+  .totals .cell .lbl { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
+  .totals .cell .val { font-size: 26px; font-weight: 700; color: var(--ink); margin-top: 6px; }
+  .totals .cell .sub { font-size: 10px; color: var(--ink-dim); margin-top: 2px; }
+  .totals .cell.created .val { color: var(--accent); }
+  .totals .cell.burned .val { color: var(--warn); }
+  .totals .cell.expired .val { color: var(--ink-dim); }
+  .totals .cell.exhausted .val { color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border); }
+  th:first-child, td:first-child { text-align: left; color: var(--ink-dim); }
+  th { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+  td { color: var(--ink); }
+  td.zero { color: var(--ink-faint); }
+  .bars { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; align-items: end; height: 90px; padding: 6px 0; }
+  .bars .bar { background: var(--accent); opacity: 0.85; min-height: 1px; border-radius: 1px; }
+  .bars .bar.empty { background: var(--border); opacity: 0.5; }
+  .abuse { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .abuse .cell { background: var(--panel-lo); border: 1px solid var(--border); padding: 14px; border-radius: 3px; }
+  .abuse .cell .lbl { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
+  .abuse .cell .val { font-size: 22px; font-weight: 700; color: var(--ink); margin-top: 6px; }
+  .note { font-size: 11px; color: var(--ink-dim); margin-top: 12px; line-height: 1.7; }
+  .foot { margin-top: 30px; font-size: 10px; color: var(--ink-faint); text-align: center; letter-spacing: 0.08em; }
+  @media (max-width: 600px) {
+    .totals { grid-template-columns: repeat(2, 1fr); }
+    .bars { grid-template-columns: repeat(15, 1fr); }
+    .nav a { margin-left: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">OBSCURA<span class="v">TRANSPARENCY</span></div>
+    <div class="nav">
+      <a href="/">app</a>
+      <a href="/transparency.html" class="active">transparency</a>
+      <a href="/status.html">status</a>
+      <a href="/PRIVACY.md">privacy</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>last 30 days</span><span id="generatedAt">loading…</span></div>
+    <div class="body">
+      <div class="totals">
+        <div class="cell created"><div class="lbl">created</div><div class="val" id="t-created">—</div><div class="sub">shares uploaded</div></div>
+        <div class="cell burned"><div class="lbl">burned</div><div class="val" id="t-burned">—</div><div class="sub">manually purged</div></div>
+        <div class="cell expired"><div class="lbl">expired</div><div class="val" id="t-expired">—</div><div class="sub">TTL elapsed</div></div>
+        <div class="cell exhausted"><div class="lbl">exhausted</div><div class="val" id="t-exhausted">—</div><div class="sub">downloads consumed</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>shares created · daily</span><span id="peakDay">—</span></div>
+    <div class="body">
+      <div class="bars" id="bars"></div>
+      <div class="note">One bar per day, oldest left. Empty bars are days with no shares created.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>daily breakdown</span><span></span></div>
+    <div class="body" style="overflow-x: auto;">
+      <table id="table">
+        <thead><tr><th>date (UTC)</th><th>created</th><th>burned</th><th>expired</th><th>exhausted</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>abuse reports · cumulative</span><span></span></div>
+    <div class="body">
+      <div class="abuse">
+        <div class="cell"><div class="lbl">received</div><div class="val" id="abuseReceived">—</div></div>
+        <div class="cell"><div class="lbl">actioned</div><div class="val" id="abuseActioned">—</div></div>
+      </div>
+      <div class="note">
+        Reports come in via <a href="mailto:abuse@obscr.app">abuse@obscr.app</a>. We log received and actioned counts only — no contents, no reporter identity. Cumulative since 2026-05-05.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>methodology</span><span></span></div>
+    <div class="body">
+      <div class="note" style="font-size: 12px;">
+        Counters are stored as daily KV keys (<code>stat:YYYY-MM-DD:&lt;event&gt;</code>) with a 90-day TTL. Increments are best-effort
+        read-then-write — two events landing in the same second can race and undercount by one. The counters carry no per-share data,
+        no IPs, no identifiers; you can reconstruct them from <code>git log</code> + the application source. Raw JSON: <a href="/api/transparency">/api/transparency</a>.
+        Full data policy: <a href="/PRIVACY.md">PRIVACY.md</a>.
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <a href="/api/transparency">raw JSON</a> ·
+    <a href="https://github.com/dgpugliese/Obsecura">repo</a>
+  </div>
+</div>
+
+<script src="/transparency.js"></script>
+</body>
+</html>
