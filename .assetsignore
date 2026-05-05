@@ -6,6 +6,9 @@
 .dev.vars
 node_modules/
 worker/
+src/
 wrangler.toml
 package.json
 package-lock.json
+README.md
+LICENSE

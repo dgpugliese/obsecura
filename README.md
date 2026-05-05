@@ -31,7 +31,7 @@ Optional: enable **passphrase mode** in Settings. The data key is then wrapped u
 
 | Layer    | Tech                                      |
 | -------- | ----------------------------------------- |
-| Frontend | React 18 + Babel via CDN, single HTML file |
+| Frontend | React 18 (CDN, SRI-pinned) + JSX pre-compiled by esbuild |
 | Crypto   | WebCrypto (AES-256-GCM) + argon2-browser  |
 | Backend  | Cloudflare Worker with [assets] binding   |
 | Storage  | R2 (ciphertext) + KV (metadata, TTL)      |
@@ -40,15 +40,16 @@ Optional: enable **passphrase mode** in Settings. The data key is then wrapped u
 ## Local development
 
 ```bash
-npx wrangler dev          # serves frontend + worker on :8787
+npm install
+npm run dev               # builds src/app.jsx → app.js, then runs wrangler on :8787
 ```
 
-The frontend is a single self-contained `Obscura.html` — no build step. Edits to the file hot-reload via wrangler. The worker entry is `worker/index.js`.
+JSX source lives in `src/app.jsx`. `npm run build` produces `app.js` at the repo root, which `Obscura.html` loads via `<script src="/app.js">`. The HTML shell, `_headers` (CSP and friends), `app.js`, and `favicon.svg` are the only files served as static assets. Worker entry is `worker/index.js`.
 
 ## Deploy
 
 ```bash
-npx wrangler deploy
+npm run deploy            # runs build:min then wrangler deploy
 ```
 
 Provisioning (one-time, before first deploy):
@@ -74,6 +75,18 @@ Paste the returned IDs into `wrangler.toml`.
 - A determined adversary who acquires both the link **and** the passphrase out-of-band.
 - Traffic analysis (size of ciphertext, timing of uploads).
 - The recipient choosing to share the decrypted plaintext.
+
+## Hardening notes
+
+- All third-party `<script>` tags carry SRI `integrity` hashes; CSP pins `script-src` to `'self'` plus `unpkg.com` and `cdn.jsdelivr.net`. Any drift from the pinned bundle is rejected by the browser.
+- `_headers` ships CSP, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, COOP/CORP, and a restrictive Permissions-Policy from the asset edge.
+- `/api/upload` requires a same-origin `Origin` header, sanity-checks the OBS1/OBS2 magic, and enforces minimum ciphertext lengths so nobody can use the bucket as anonymous object storage.
+- Auto-generated passphrases come from `crypto.getRandomValues` via a rejection-sampling helper — never `Math.random`. Users wanting more than convenience-grade entropy should type their own passphrase.
+- Cloudflare logs request paths and IPs by default. The `/api/d/{id}` URL contains the share id, which means an operator with log access can correlate IPs to shares. If you need stronger anonymity, audit your Cloudflare logging settings before going live.
+
+## Abuse / takedown
+
+Anonymous file hosting attracts misuse. To report illegal content or request takedown, email **abuse@obscr.app** with the share URL. The server keeps no decrypted content, so removal means purging the ciphertext blob — which any sender can also do themselves from the Done screen via the "burn now" action.
 
 ---
 

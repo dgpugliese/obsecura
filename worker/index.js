@@ -10,6 +10,63 @@
 
 const HEX_ID = /^[a-f0-9]{16}$/;
 
+// Strict CSP for the HTML shell. `script-src` is restricted to self plus the
+// two CDNs we vendor pinned-by-SRI assets from. `connect-src 'self'` keeps
+// the page from talking to anyone but our own Worker — defense in depth on
+// top of SRI for the zero-knowledge promise. `frame-ancestors 'none'`
+// blocks clickjacking.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob:",
+  "connect-src 'self'",
+  "worker-src 'self' blob:",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "object-src 'none'",
+].join("; ");
+
+const SECURITY_HEADERS = {
+  "content-security-policy": CSP,
+  "referrer-policy": "no-referrer",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "permissions-policy": "geolocation=(), camera=(), microphone=(), payment=()",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+};
+
+function withSecurityHeaders(res) {
+  const h = new Headers(res.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) h.set(k, v);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+}
+
+// Allowed Origins for the upload endpoint. The page is the only thing that
+// should be POSTing ciphertext; everything else (curl, scripts from other
+// sites, scrapers) gets rejected. Production hosts are pinned in this list;
+// local dev allows any localhost/127.0.0.1 port so `wrangler dev` works
+// regardless of the port wrangler picks.
+const PROD_ALLOWED_ORIGINS = new Set([
+  "https://obscr.app",
+  "https://www.obscr.app",
+]);
+
+function originAllowed(request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  if (PROD_ALLOWED_ORIGINS.has(origin)) return true;
+  try {
+    const u = new URL(origin);
+    if ((u.hostname === "localhost" || u.hostname === "127.0.0.1") && u.protocol === "http:") {
+      return true;
+    }
+  } catch { /* malformed Origin header */ }
+  return false;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -40,10 +97,16 @@ export default {
     if (url.pathname === "/" || url.pathname === "") {
       const u = new URL(request.url);
       u.pathname = "/Obscura.html";
-      return env.ASSETS.fetch(new Request(u.toString(), request));
+      const res = await env.ASSETS.fetch(new Request(u.toString(), request));
+      return withSecurityHeaders(res);
     }
 
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    // Apply security headers to HTML responses; pass everything else through
+    // untouched so binary assets keep their content-type.
+    const ct = res.headers.get("content-type") || "";
+    if (ct.startsWith("text/html")) return withSecurityHeaders(res);
+    return res;
   },
 
   async scheduled(event, env, ctx) {
@@ -51,7 +114,16 @@ export default {
   },
 };
 
+// Minimum well-formed sizes per format. Both magics are 4 bytes.
+//   OBS1: magic(4) + iv(12) + ct/tag(>=16)               = 32
+//   OBS2: magic(4) + salt(16) + wrapIv(12) + wrappedDek(48)
+//         + dataIv(12) + ct/tag(>=16)                    = 108
+const MIN_OBS1 = 32;
+const MIN_OBS2 = 108;
+
 async function handleUpload(request, env) {
+  if (!originAllowed(request)) return jerr(403, "forbidden origin");
+
   const ttl = clampInt(request.headers.get("X-Obscura-TTL"), 1, parseInt(env.MAX_TTL_HOURS, 10) || 168, 24);
   const maxDL = clampInt(request.headers.get("X-Obscura-MaxDL"), 1, parseInt(env.MAX_DOWNLOADS, 10) || 100, 1);
   const maxBytes = parseInt(env.MAX_BLOB_BYTES, 10) || 50 * 1024 * 1024;
@@ -66,6 +138,8 @@ async function handleUpload(request, env) {
   const isObs1 = head[0] === 0x4f && head[1] === 0x42 && head[2] === 0x53 && head[3] === 0x31;
   const isObs2 = head[0] === 0x4f && head[1] === 0x42 && head[2] === 0x53 && head[3] === 0x32;
   if (!isObs1 && !isObs2) return jerr(400, "not an obscura ciphertext");
+  if (isObs1 && body.byteLength < MIN_OBS1) return jerr(400, "obs1 ciphertext truncated");
+  if (isObs2 && body.byteLength < MIN_OBS2) return jerr(400, "obs2 ciphertext truncated");
 
   const id = randomHexId(8);
   const now = Date.now();
