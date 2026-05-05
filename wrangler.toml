@@ -1,0 +1,35 @@
+name = "obscura"
+main = "worker/index.js"
+compatibility_date = "2026-05-01"
+
+# Serve Obscura.html (and other static assets) from the project root.
+# `.assetsignore` excludes worker/, wrangler.toml, .git/, etc.
+# Default not_found behavior falls through to the Worker, which rewrites
+# `/` → `/Obscura.html` and handles `/api/*`.
+[assets]
+directory = "."
+binding = "ASSETS"
+
+# Ciphertext blobs. Server never sees plaintext or keys.
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "obscura-blobs"
+preview_bucket_name = "obscura-blobs-dev"
+
+# Per-blob metadata: expiresAt, downloadsRemaining, size.
+# Replace `id` and `preview_id` with real namespace IDs from `wrangler kv namespace create`
+# before deploying. For `wrangler dev` (local mode) the placeholders are fine.
+[[kv_namespaces]]
+binding = "META"
+id = "REPLACE_BEFORE_DEPLOY"
+preview_id = "REPLACE_BEFORE_DEPLOY"
+
+# Hourly sweep for orphaned R2 objects whose KV metadata expired.
+# KV's own expirationTtl handles metadata cleanup; this handler is a safety net.
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+MAX_BLOB_BYTES = "67108864"  # 64 MiB hard ceiling; design max is 50 MB
+MAX_TTL_HOURS = "168"        # 7 days
+MAX_DOWNLOADS = "100"
