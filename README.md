@@ -92,9 +92,9 @@ Anonymous file hosting attracts misuse. To report illegal content or request tak
 
 ## Support
 
-OBSCURA is free, open source, and ad-free. It's hosted on Cloudflare and the bills are paid out of pocket. If it saved you a step or you just like the project, a tip helps keep the lights on:
+OBSCURA is free, open source, and ad-free. It's hosted on Cloudflare and the bills are paid out of pocket. If it saved you a step or you just like the project, a tip helps keep the lights on.
 
-- **Buy Me a Coffee** → [buymeacoffee.com/dgpugliese](https://buymeacoffee.com/dgpugliese) — one-off tips, leave a note if you want.
+<a href="https://www.buymeacoffee.com/dgpugliese" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" width="210"></a>
 
 Donations are appreciated, never required. Nothing in the app is gated behind a tip. More info at [/support](https://obscr.app/support).
 
