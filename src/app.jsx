@@ -727,7 +727,7 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
               {" · "}
               <a href="/status.html" style={{ color: theme.inkDim, textDecoration: "none" }}>status</a>
               {" · "}
-              <a href="/PRIVACY.md" style={{ color: theme.inkDim, textDecoration: "none" }}>privacy</a>
+              <a href="/privacy.html" style={{ color: theme.inkDim, textDecoration: "none" }}>privacy</a>
             </span>
           </>
         )}
@@ -1389,6 +1389,21 @@ function HeroDone({ files, onReset, link, onDownload, mode, passphrase, onBurn, 
         </div>
       </div>
       <div>
+        <div style={{
+          marginBottom: 10,
+          padding: "8px 12px",
+          border: `1px dashed ${theme.border}`,
+          borderRadius: 3,
+          background: "transparent",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap",
+          fontFamily: "var(--mono)", fontSize: 10.5, color: theme.inkDim,
+        }}>
+          <span>obscura is free &amp; open source · tips keep the lights on</span>
+          <a href="/support.html" style={{
+            color: theme.accent, textDecoration: "none",
+            fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase",
+          }}>support →</a>
+        </div>
         <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>zero-knowledge transit</div>
         <ZKPipeline width={1080} height={70} intensity={1.4} />
       </div>
@@ -2395,6 +2410,21 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
           }}>
             {hero}
             <SpecStrip active={phase === "working" || phase === "fetching"} narrow={narrow} />
+            <div style={{
+              marginTop: 6,
+              padding: "10px 0 4px",
+              fontFamily: "var(--mono)", fontSize: 10,
+              color: theme.inkFaint, letterSpacing: "0.06em",
+              display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap",
+            }}>
+              <a href="/transparency.html" style={{ color: "inherit", textDecoration: "none" }}>transparency</a>
+              <span>·</span>
+              <a href="/status.html" style={{ color: "inherit", textDecoration: "none" }}>status</a>
+              <span>·</span>
+              <a href="/privacy.html" style={{ color: "inherit", textDecoration: "none" }}>privacy</a>
+              <span>·</span>
+              <a href="/support.html" style={{ color: "inherit", textDecoration: "none" }}>support</a>
+            </div>
           </div>
         </div>
       </div>

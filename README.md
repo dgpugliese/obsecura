@@ -90,6 +90,14 @@ Paste the returned IDs into `wrangler.toml`.
 
 Anonymous file hosting attracts misuse. To report illegal content or request takedown, email **abuse@obscr.app** with the share URL. The server keeps no decrypted content, so removal means purging the ciphertext blob — which any sender can also do themselves from the Done screen via the "burn now" action.
 
+## Support
+
+OBSCURA is free, open source, and ad-free. It's hosted on Cloudflare and the bills are paid out of pocket. If it saved you a step or you just like the project, a tip helps keep the lights on:
+
+- **Buy Me a Coffee** → [buymeacoffee.com/dgpugliese](https://buymeacoffee.com/dgpugliese) — one-off tips, leave a note if you want.
+
+Donations are appreciated, never required. Nothing in the app is gated behind a tip. More info at [/support](https://obscr.app/support).
+
 ---
 
 ## Development note

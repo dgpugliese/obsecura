@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>OBSCURA — privacy &amp; logs policy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="What OBSCURA stores, what it can't store, what Cloudflare retains on our behalf, and how long any of it lasts." />
+<meta name="theme-color" content="#08090c" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090c;
+    --panel: #0e1016;
+    --panel-lo: #0a0c12;
+    --panel-hi: #12141c;
+    --border: #1c2030;
+    --border-hi: #262b3d;
+    --ink: #d6dae5;
+    --ink-dim: #7a808e;
+    --ink-faint: #4a4f5e;
+    --accent: #6ee7b7;
+    --warn: #f5c451;
+    --crit: #ef6f6f;
+    --mono: "JetBrains Mono", "Fira Code", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.7; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
+  .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
+  .nav a { color: var(--ink-dim); margin-left: 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav a.active { color: var(--ink); }
+  .meta { display: flex; gap: 18px; flex-wrap: wrap; font-size: 11px; color: var(--ink-dim); margin-bottom: 18px; }
+  .meta .k { color: var(--ink-faint); letter-spacing: 0.16em; text-transform: uppercase; font-size: 10px; margin-right: 6px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; }
+  .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
+  .panel > .body { padding: 18px 20px; }
+  .lead { color: var(--ink-dim); font-size: 13px; line-height: 1.85; }
+  .lead strong, .body strong { color: var(--ink); font-weight: 600; }
+  h2 { margin: 18px 0 8px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); font-weight: 600; }
+  h2:first-child { margin-top: 0; }
+  p { margin: 8px 0; color: var(--ink-dim); }
+  ul { margin: 8px 0 12px; padding-left: 18px; color: var(--ink-dim); }
+  li { margin: 4px 0; }
+  li code, p code, td code { font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--panel-lo); padding: 1px 6px; border: 1px solid var(--border); border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 12px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; background: var(--panel-lo); }
+  td { color: var(--ink-dim); }
+  td:first-child { color: var(--ink); }
+  .bad { color: var(--crit); }
+  .good { color: var(--accent); }
+  .pill { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+  .pill.good { color: var(--accent); border-color: var(--accent); }
+  .pill.bad { color: var(--crit); border-color: var(--crit); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); }
+  .note { font-size: 11.5px; color: var(--ink-dim); line-height: 1.8; }
+  .note strong { color: var(--ink); }
+  .foot { margin-top: 30px; font-size: 10px; color: var(--ink-faint); text-align: center; letter-spacing: 0.08em; }
+  hr { border: none; border-top: 1px dashed var(--border); margin: 16px 0; }
+  @media (max-width: 600px) {
+    .nav a { margin-left: 10px; }
+    table, thead, tbody, tr, td, th { display: block; }
+    th { display: none; }
+    td { border-bottom: none; padding: 4px 0; }
+    tr { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    td:first-child { font-weight: 600; margin-bottom: 4px; }
+    td:nth-child(2)::before { content: "where: "; color: var(--ink-faint); }
+    td:nth-child(3)::before { content: "retention: "; color: var(--ink-faint); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">OBSCURA<span class="v">PRIVACY</span></div>
+    <div class="nav">
+      <a href="/">app</a>
+      <a href="/transparency.html">transparency</a>
+      <a href="/status.html">status</a>
+      <a href="/privacy.html" class="active">privacy</a>
+      <a href="/support.html">support</a>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div><span class="k">last updated</span>2026-05-05</div>
+    <div><span class="k">canonical</span><a href="https://github.com/dgpugliese/Obsecura/blob/main/PRIVACY.md">PRIVACY.md</a></div>
+    <div><span class="k">history</span><code>git log PRIVACY.md</code></div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>summary</span><span></span></div>
+    <div class="body">
+      <p class="lead">
+        OBSCURA is a <strong>zero-knowledge file-transfer service</strong>. The point of this document is to be specific about what that means in practice — what we store, what we <em>can't</em> store, what our infrastructure provider stores on our behalf, and how long any of it lasts.
+      </p>
+      <p class="lead">
+        If something here is wrong or out of date, that's a bug. Open an issue at <a href="https://github.com/dgpugliese/Obsecura/issues">github.com/dgpugliese/Obsecura/issues</a> or email <a href="mailto:security@obscr.app">security@obscr.app</a>.
+      </p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>what obscura stores</span><span>application code</span></div>
+    <div class="body">
+      <h2>what the application code stores</h2>
+      <ul>
+        <li><strong>Ciphertext.</strong> Stored in Cloudflare R2, keyed by a random 16-hex-character ID. Opaque to the server.</li>
+        <li><strong>Per-share metadata.</strong> Stored in Cloudflare KV. Each record contains:
+          <ul>
+            <li><code>expiresAt</code> — unix milliseconds, set from the sender's TTL choice</li>
+            <li><code>downloads</code> — remaining download count</li>
+            <li><code>size</code> — ciphertext size in bytes</li>
+            <li><code>createdAt</code> — unix milliseconds</li>
+          </ul>
+        </li>
+        <li><strong>Aggregate counters</strong> (added 2026-05-05). Daily totals of shares created, burned, expired, and exhausted. Stored in KV under <code>stat:YYYY-MM-DD:&lt;event&gt;</code> keys with a 90-day TTL. <strong>No per-share data, no IPs, no identifiers.</strong> These power the public <a href="/transparency.html">transparency report</a>.</li>
+      </ul>
+
+      <h2>what the application code does <span class="bad">not</span> store</h2>
+      <ul>
+        <li><strong>Plaintext.</strong> Never reaches the server. Encryption happens in the sender's browser via WebCrypto.</li>
+        <li><strong>Encryption keys.</strong> Live in the URL fragment (<code>#k=…</code>), which browsers do not send to servers. In passphrase mode the data key is wrapped under an argon2id-derived KEK and the passphrase is shared out-of-band — the server never sees either.</li>
+        <li><strong>Sender or recipient identity.</strong> No accounts, no email, no phone, no cookies, no <code>localStorage</code> tied to identity.</li>
+        <li><strong>Application access logs.</strong> The Worker does not write access log lines for <code>/api/upload</code>, <code>/api/d/{id}</code> GET/HEAD/DELETE.</li>
+        <li><strong>Filenames or content metadata in the clear.</strong> Filenames, sizes-per-file, and MIME types are encrypted along with the file bytes; the server only sees total ciphertext size.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>what cloudflare stores on our behalf</span><span>infrastructure</span></div>
+    <div class="body">
+      <p class="lead">
+        We are a Cloudflare Workers + R2 + KV deployment. Cloudflare logs traffic at the edge as part of operating the platform. We don't control these logs but we do try to be transparent about them.
+      </p>
+      <p class="lead">By default — i.e., what we have configured today — Cloudflare retains:</p>
+      <ul>
+        <li><strong>HTTP request analytics</strong> (aggregated): request counts, response codes, bytes, country-level geography. Visible to the account owner via the Cloudflare dashboard. Retention is per Cloudflare's standard analytics policy (rolling 30 days for the free dashboard, longer for paid plans).</li>
+        <li><strong>Per-request log entries</strong> (raw): include client IP, requested path (which contains the share ID for <code>/api/d/{id}</code> requests), user-agent, response code, timestamp. These are accessible to the account owner via Cloudflare Logs / Logpush <strong>if Logpush is enabled.</strong> Logpush is <span class="pill bad">not enabled</span> for <code>obscr.app</code> as of this document's date.</li>
+        <li><strong>Security events</strong> (WAF, bot scoring, rate limit triggers): retained per Cloudflare's policy.</li>
+      </ul>
+      <h2>what this means in practice</h2>
+      <ul>
+        <li>A Cloudflare account administrator (currently: David Pugliese, the operator) <strong>could</strong> correlate IPs to share IDs by querying Cloudflare's edge logs within Cloudflare's retention window, even though the application itself does not log this.</li>
+        <li>Cloudflare staff can access logs under their internal access-control and legal-process policies. See <a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>.</li>
+        <li>Compelled disclosure (subpoena, court order) directed at Cloudflare can expose IP↔share-ID correlations within the retention window. The server still cannot disclose plaintext, because it doesn't have plaintext.</li>
+      </ul>
+      <p class="note">If you need stronger anonymity than this, route through Tor or a VPN before uploading or downloading.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>retention</span><span></span></div>
+    <div class="body" style="overflow-x: auto;">
+      <table>
+        <thead><tr><th>data</th><th>where</th><th>retention</th></tr></thead>
+        <tbody>
+          <tr><td>Ciphertext</td><td>R2</td><td>Until the share is downloaded the configured number of times, manually burned, or its TTL elapses. Hourly cron sweeps orphans. Maximum TTL is 7 days.</td></tr>
+          <tr><td>Per-share metadata</td><td>KV</td><td>Same lifecycle as the ciphertext, plus a small grace period. KV's <code>expirationTtl</code> reaps abandoned records automatically.</td></tr>
+          <tr><td>Aggregate daily counters</td><td>KV</td><td>90 days, then auto-reaped.</td></tr>
+          <tr><td>Cloudflare HTTP analytics</td><td>Cloudflare</td><td>Per Cloudflare's policy (rolling, dashboard-visible window).</td></tr>
+          <tr><td>Cloudflare raw request logs</td><td>Cloudflare (Logpush)</td><td><strong>Not currently enabled.</strong> If enabled in the future, this document will be updated with the destination and retention.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>who can see what</span><span></span></div>
+    <div class="body">
+      <ul>
+        <li><strong>The operator</strong> (David Pugliese, via the Cloudflare account): can see ciphertext bytes (opaque), KV metadata, aggregate counters, and Cloudflare-side analytics/logs as described above. <span class="good">Cannot see plaintext. Cannot see encryption keys.</span></li>
+        <li><strong>Cloudflare</strong>: as their privacy policy describes.</li>
+        <li><strong>Anyone with the share link</strong> (and passphrase, if used): can decrypt the file until it expires or burns.</li>
+        <li><strong>The public</strong>: can see the <a href="/transparency.html">transparency report</a> and <a href="/status.html">status page</a>. Both are aggregate-only.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>abuse reports</span><span></span></div>
+    <div class="body">
+      <p class="lead">
+        Email <a href="mailto:abuse@obscr.app">abuse@obscr.app</a> with the share URL and a brief description. We do not store decrypted content, so abuse handling consists of purging the ciphertext blob (which any sender can also do themselves from the Done screen via "burn now") and counting the report in the public transparency log.
+      </p>
+      <p class="note">We log received and actioned counts, not report contents.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>changes to this policy</span><span></span></div>
+    <div class="body">
+      <p class="note">
+        Material changes are committed to <a href="https://github.com/dgpugliese/Obsecura/blob/main/PRIVACY.md">PRIVACY.md</a> in the public repository. The <strong>last updated</strong> header at the top reflects the current revision. Past revisions are visible in <code>git log PRIVACY.md</code>.
+      </p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <a href="https://github.com/dgpugliese/Obsecura/blob/main/PRIVACY.md">source · PRIVACY.md</a> ·
+    <a href="https://github.com/dgpugliese/Obsecura">repo</a> ·
+    <a href="/support.html">support</a>
+  </div>
+</div>
+</body>
+</html>

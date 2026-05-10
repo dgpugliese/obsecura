@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>OBSCURA — support</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="OBSCURA is free, open source, and ad-free. If you'd like to chip in to keep it that way, here's how." />
+<meta name="theme-color" content="#08090c" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090c;
+    --panel: #0e1016;
+    --panel-lo: #0a0c12;
+    --panel-hi: #12141c;
+    --border: #1c2030;
+    --border-hi: #262b3d;
+    --ink: #d6dae5;
+    --ink-dim: #7a808e;
+    --ink-faint: #4a4f5e;
+    --accent: #6ee7b7;
+    --warn: #f5c451;
+    --mono: "JetBrains Mono", "Fira Code", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
+  .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
+  .nav a { color: var(--ink-dim); margin-left: 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav a.active { color: var(--ink); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; }
+  .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
+  .panel > .body { padding: 18px 18px 16px; }
+  .lead { color: var(--ink-dim); font-size: 13px; line-height: 1.8; }
+  .lead strong { color: var(--ink); font-weight: 600; }
+  .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 4px; }
+  .opt { background: var(--panel-lo); border: 1px solid var(--border); padding: 16px; border-radius: 3px; display: flex; flex-direction: column; gap: 8px; }
+  .opt .lbl { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
+  .opt .name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .opt .desc { font-size: 11.5px; color: var(--ink-dim); line-height: 1.7; }
+  .opt .cta { margin-top: 4px; }
+  .btn { display: inline-block; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 3px; color: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .btn:hover { background: rgba(110, 231, 183, 0.08); text-decoration: none; }
+  .btn.ghost { border-color: var(--border-hi); color: var(--ink-dim); }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .pending { color: var(--ink-faint); font-size: 11px; font-style: italic; }
+  .note { font-size: 11px; color: var(--ink-dim); margin-top: 12px; line-height: 1.8; }
+  .row { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-dim); }
+  .row .k { color: var(--ink-faint); letter-spacing: 0.16em; text-transform: uppercase; font-size: 10px; }
+  .foot { margin-top: 30px; font-size: 10px; color: var(--ink-faint); text-align: center; letter-spacing: 0.08em; }
+  @media (max-width: 600px) {
+    .options { grid-template-columns: 1fr; }
+    .nav a { margin-left: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">OBSCURA<span class="v">SUPPORT</span></div>
+    <div class="nav">
+      <a href="/">app</a>
+      <a href="/transparency.html">transparency</a>
+      <a href="/status.html">status</a>
+      <a href="/support.html" class="active">support</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>why this page exists</span><span></span></div>
+    <div class="body">
+      <div class="lead">
+        OBSCURA is <strong>free, open source, and ad-free</strong>. It runs on Cloudflare and the bills get paid out of pocket. There's no paid tier, no upsell, and nothing in the app is gated behind a tip. If the project saved you a step — or you just want to keep zero-knowledge tools in the world — these are the ways to chip in.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>tip</span><span>one-time</span></div>
+    <div class="body">
+      <div class="options" style="grid-template-columns: 1fr;">
+        <div class="opt">
+          <div class="lbl">buy me a coffee</div>
+          <div class="name">$3 — $20, your call</div>
+          <div class="desc">One-off tip via card or Apple/Google Pay. Leave a note if you want — I read them.</div>
+          <div class="cta"><a class="btn" href="https://buymeacoffee.com/dgpugliese" rel="noopener" target="_blank">buymeacoffee.com/dgpugliese →</a></div>
+        </div>
+      </div>
+      <div class="note">
+        Donations go to project upkeep: Cloudflare egress, domain renewal, the next round of security review, and the time to keep building. They are <strong>not</strong> tax-deductible — OBSCURA is not a registered nonprofit.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>other ways to help</span><span>free</span></div>
+    <div class="body">
+      <div class="row" style="flex-direction: column; gap: 10px; align-items: flex-start;">
+        <div><span class="k">star</span> &nbsp; <a href="https://github.com/dgpugliese/Obsecura" rel="noopener" target="_blank">github.com/dgpugliese/Obsecura</a> — discoverability matters more than tips.</div>
+        <div><span class="k">tell people</span> &nbsp; share <a href="https://obscr.app">obscr.app</a> with someone who keeps emailing files they shouldn't.</div>
+        <div><span class="k">file issues</span> &nbsp; bugs, feature ideas, security concerns → <a href="https://github.com/dgpugliese/Obsecura/issues" rel="noopener" target="_blank">issues tab</a>.</div>
+        <div><span class="k">audit it</span> &nbsp; the code is MIT and the crypto path is small. Read it, break it, tell me.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>privacy of donations</span><span></span></div>
+    <div class="body">
+      <div class="note" style="font-size: 12px; color: var(--ink-dim);">
+        Tips on Buy Me a Coffee are processed by Buy Me a Coffee and Stripe — they see whatever payment data your card / wallet exposes. OBSCURA does <strong>not</strong> link tips to your shares; the app has no accounts and the tip platform is on a separate domain.
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <a href="https://github.com/dgpugliese/Obsecura">repo</a> ·
+    <a href="/transparency.html">transparency</a> ·
+    <a href="/privacy.html">privacy</a>
+  </div>
+</div>
+</body>
+</html>
