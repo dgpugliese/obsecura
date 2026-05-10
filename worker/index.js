@@ -336,17 +336,30 @@ async function handleTransparency(env) {
     dateKeys.push(d.toISOString().slice(0, 10));
   }
   const events = ["created", "burned", "expired", "exhausted"];
+
+  // Fan out all KV reads in parallel instead of 122 sequential awaits.
+  const fetches = [];
+  for (const date of dateKeys) {
+    for (const ev of events) {
+      fetches.push(env.META.get(`stat:${date}:${ev}`));
+    }
+  }
+  fetches.push(env.META.get("stat:abuse:received"));
+  fetches.push(env.META.get("stat:abuse:actioned"));
+  const results = await Promise.all(fetches);
+
   const daily = {};
+  let i = 0;
   for (const date of dateKeys) {
     const row = { date };
     for (const ev of events) {
-      const v = await env.META.get(`stat:${date}:${ev}`);
+      const v = results[i++];
       row[ev] = v ? parseInt(v, 10) : 0;
     }
     daily[date] = row;
   }
-  const abuseReceived = parseInt((await env.META.get("stat:abuse:received")) || "0", 10) || 0;
-  const abuseActioned = parseInt((await env.META.get("stat:abuse:actioned")) || "0", 10) || 0;
+  const abuseReceived = parseInt(results[i++] || "0", 10) || 0;
+  const abuseActioned = parseInt(results[i++] || "0", 10) || 0;
 
   return Response.json(
     {

@@ -1,7 +1,9 @@
 (async function () {
   let data;
   try {
-    const r = await fetch("/api/transparency", { cache: "no-store" });
+    // Honor the worker's 5-min max-age — public, aggregate, refreshed cheaply.
+    // The "as of" timestamp in the UI already tells the user it's not real-time.
+    const r = await fetch("/api/transparency");
     if (!r.ok) throw new Error("HTTP " + r.status);
     data = await r.json();
   } catch (e) {
