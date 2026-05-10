@@ -2150,26 +2150,29 @@ function HeroDecrypted({ outputs, onReset, onDownload, onSaveAll, savedSet }) {
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={onSaveAll} style={{
-          padding: "10px 18px",
-          border: `1px solid ${theme.accentLine}`,
-          background: theme.accentSoft, color: theme.accent,
-          fontFamily: "var(--mono)", fontSize: 12,
-          letterSpacing: "0.18em", textTransform: "uppercase",
-          borderRadius: 3, cursor: "pointer", fontWeight: 700,
-        }}>SAVE ALL ({outputs.length})</button>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: theme.inkDim, flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button onClick={onSaveAll} style={{
+            padding: "10px 18px",
+            border: `1px solid ${theme.accentLine}`,
+            background: theme.accentSoft, color: theme.accent,
+            fontFamily: "var(--mono)", fontSize: 12,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            borderRadius: 3, cursor: "pointer", fontWeight: 700,
+          }}>SAVE ALL ({outputs.length})</button>
+          <button onClick={onReset} style={{
+            marginLeft: "auto",
+            padding: "8px 14px",
+            border: `1px solid ${theme.border}`,
+            background: theme.panelHi, color: theme.ink,
+            fontFamily: "var(--mono)", fontSize: 10,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            borderRadius: 3, cursor: "pointer",
+          }}>RESET</button>
+        </div>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: theme.inkDim, lineHeight: 1.6 }}>
           plaintext never touched the server · save individual files with their SAVE button
         </span>
-        <button onClick={onReset} style={{
-          padding: "8px 14px",
-          border: `1px solid ${theme.border}`,
-          background: theme.panelHi, color: theme.ink,
-          fontFamily: "var(--mono)", fontSize: 10,
-          letterSpacing: "0.18em", textTransform: "uppercase",
-          borderRadius: 3, cursor: "pointer",
-        }}>RESET</button>
       </div>
     </div>
   );
