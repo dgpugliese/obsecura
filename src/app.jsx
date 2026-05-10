@@ -1494,21 +1494,28 @@ function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnable
       border: `1px solid ${theme.borderHi}`,
       background: theme.panel,
       padding: narrow ? 16 : 22,
-      paddingTop: narrow ? 56 : 22,
-      display: "grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr 1fr",
-      gap: narrow ? 14 : 22,
-      position: "relative",
+      display: "flex", flexDirection: "column",
+      gap: narrow ? 14 : 18,
     }}>
-      <button onClick={onClose} style={{
-        position: "absolute", top: 14, right: 14,
-        padding: "6px 12px",
-        border: `1px solid ${theme.border}`,
-        background: theme.panelHi, color: theme.inkDim,
-        fontFamily: "var(--mono)", fontSize: 10,
-        letterSpacing: "0.18em", textTransform: "uppercase",
-        borderRadius: 3, cursor: "pointer",
-      }}>← back</button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: theme.inkFaint, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+          dispatch parameters
+        </div>
+        <button onClick={onClose} style={{
+          padding: "6px 12px",
+          border: `1px solid ${theme.border}`,
+          background: theme.panelHi, color: theme.inkDim,
+          fontFamily: "var(--mono)", fontSize: 10,
+          letterSpacing: "0.18em", textTransform: "uppercase",
+          borderRadius: 3, cursor: "pointer",
+        }}>← back</button>
+      </div>
 
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: narrow ? "1fr" : "1fr 1fr 1fr",
+        gap: narrow ? 14 : 22,
+      }}>
       <div style={{
         padding: 14,
         border: `1px solid ${theme.border}`,
@@ -1608,6 +1615,7 @@ function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnable
           recipient enters this<br/>
           (share separately).
         </div>
+      </div>
       </div>
     </div>
   );
