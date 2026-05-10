@@ -247,20 +247,37 @@ async function handleManualPurge(id, env, ctx) {
 }
 
 async function serveNotFound(request, env) {
-  const u = new URL(request.url);
-  u.pathname = "/404.html";
-  const res = await env.ASSETS.fetch(new Request(u.toString(), request));
-  // If 404.html itself is missing, fall back to a plain text response so we
-  // never serve an asset-binding default page.
-  if (res.status !== 200) {
-    return withSecurityHeaders(new Response("not found\n", {
-      status: 404,
-      headers: { "content-type": "text/plain; charset=utf-8" },
-    }));
+  // The assets binding's html_handling rewrites /foo.html -> /foo with a 307,
+  // so request the canonical extensionless path directly. We also follow one
+  // redirect by re-issuing against the resolved Location, in case future
+  // assets-binding behavior differs.
+  const tryPaths = ["/404", "/404.html"];
+  for (const path of tryPaths) {
+    const u = new URL(request.url);
+    u.pathname = path;
+    const res = await env.ASSETS.fetch(new Request(u.toString(), { headers: request.headers }));
+    if (res.status === 200) {
+      return withSecurityHeaders(new Response(res.body, {
+        status: 404,
+        headers: res.headers,
+      }));
+    }
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (loc) {
+        const followed = await env.ASSETS.fetch(new Request(new URL(loc, u).toString(), { headers: request.headers }));
+        if (followed.status === 200) {
+          return withSecurityHeaders(new Response(followed.body, {
+            status: 404,
+            headers: followed.headers,
+          }));
+        }
+      }
+    }
   }
-  return withSecurityHeaders(new Response(res.body, {
+  return withSecurityHeaders(new Response("not found\n", {
     status: 404,
-    headers: res.headers,
+    headers: { "content-type": "text/plain; charset=utf-8" },
   }));
 }
 
