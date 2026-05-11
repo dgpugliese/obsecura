@@ -739,7 +739,7 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
         {!narrow && <Clock color={theme.ink} />}
         {!narrow && <Tag secure><Dot color={theme.secure} pulse /> secure</Tag>}
         <Tag accent>ZK · OK</Tag>
-        <LayoutToggle layout={layout} setLayout={setLayout} />
+        {!narrow && <LayoutToggle layout={layout} setLayout={setLayout} />}
       </div>
     </div>
   );
@@ -748,7 +748,7 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
 // ============================================================
 // Spec strip
 // ============================================================
-function SpecStrip({ active = false, narrow = false, stats = null }) {
+function SpecStrip({ active = false, narrow = false, stats = null, ttl = 24, maxDL = 1 }) {
   // Real entropy from the most recent encrypt; falls back to "—" before any
   // ciphertext exists. AES-GCM output is statistically uniform, so once we
   // have data this lands at ~7.99x.
@@ -785,7 +785,7 @@ function SpecStrip({ active = false, narrow = false, stats = null }) {
       </Panel>
       <Panel label="ttl" right="03">
         <div style={{ padding: "14px 14px 12px" }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>24<span style={{ color: theme.inkFaint }}>h</span> / 1<span style={{ color: theme.inkFaint }}>dl</span></div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: theme.ink, fontFamily: "var(--mono)" }}>{ttl}<span style={{ color: theme.inkFaint }}>h</span> / {maxDL}<span style={{ color: theme.inkFaint }}>dl</span></div>
           <div style={{ marginTop: 8, fontSize: 10, color: theme.inkDim, fontFamily: "var(--mono)", lineHeight: 1.7 }}>
             <div>self-destructs after read</div>
             <div>or <Countdown color={theme.ink} /> remaining</div>
@@ -1915,6 +1915,7 @@ function App() {
 
   let hero;
   const active = screen === "encrypting" || screen === "done";
+  const effectiveLayout = narrow ? "centered" : layout;
   if (screen === "empty") hero = <HeroEmpty onBrowse={browse} onSettings={() => setScreen("settings")} onCompose={() => setScreen("compose")} ttl={ttl} maxDL={maxDL} />;
   else if (screen === "compose") hero = <HeroCompose onSend={(files) => acceptFiles(files)} onClose={() => setScreen("empty")} />;
   else if (screen === "drag") hero = <HeroDragOver files={files} />;
@@ -1950,7 +1951,7 @@ function App() {
       <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <TopBar subtitle={subs[screen]} layout={layout} setLayout={setLayout} narrow={narrow} />
 
-        {layout === "sidebar" && !narrow && (
+        {effectiveLayout === "sidebar" && (
           <div style={{
             flex: 1, padding: 22,
             display: "grid",
@@ -1960,14 +1961,14 @@ function App() {
             <LeftRail screen={screen} active={active} stats={cryptoStats} events={auditEvents} passEnabled={passEnabled} />
             <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
               {hero}
-              <SpecStrip active={active} stats={cryptoStats} />
+              <SpecStrip active={active} stats={cryptoStats} ttl={ttl} maxDL={maxDL} />
               <CommandStrip screen={screen} />
             </div>
             <RightRail files={files} active={active} stats={cryptoStats} />
           </div>
         )}
 
-        {(layout === "centered" || (layout === "sidebar" && narrow)) && (
+        {effectiveLayout === "centered" && (
           <div style={{
             flex: 1, padding: narrow ? "20px 14px" : "40px 22px",
             display: "flex", justifyContent: "center",
@@ -1978,13 +1979,13 @@ function App() {
             }}>
               {hero}
               <PayloadInline files={files} />
-              <SpecStrip active={active} narrow={narrow} stats={cryptoStats} />
+              <SpecStrip active={active} narrow={narrow} stats={cryptoStats} ttl={ttl} maxDL={maxDL} />
               <CommandStrip screen={screen} />
             </div>
           </div>
         )}
 
-        {layout === "terminal" && (
+        {effectiveLayout === "terminal" && (
           <div style={{
             flex: 1, padding: narrow ? "16px 12px" : "32px 22px",
             display: "flex", justifyContent: "center",
