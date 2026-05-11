@@ -11,19 +11,24 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Palette matches src/app.jsx so static pages and the React app
+     read as one product. Single source of truth: the theme in app.jsx. */
   :root {
     --bg: #08090c;
-    --panel: #0e1016;
-    --panel-lo: #0a0c12;
-    --panel-hi: #12141c;
-    --border: #1c2030;
-    --border-hi: #262b3d;
-    --ink: #d6dae5;
-    --ink-dim: #7a808e;
-    --ink-faint: #4a4f5e;
-    --accent: #6ee7b7;
-    --warn: #f5c451;
-    --crit: #ef6f6f;
+    --panel: #0f1116;
+    --panel-lo: #0b0d12;
+    --panel-hi: #15181f;
+    --border: #1d212b;
+    --border-hi: #2a2f3d;
+    --ink: #e9ecf2;
+    --ink-dim: #9aa0ad;
+    --ink-faint: #5a6172;
+    --accent: oklch(0.82 0.16 195);
+    --accent-soft: oklch(0.82 0.16 195 / 0.18);
+    --accent-line: oklch(0.82 0.16 195 / 0.45);
+    --secure: oklch(0.78 0.17 150);
+    --warn: oklch(0.75 0.18 60);
+    --crit: oklch(0.68 0.22 25);
     --mono: "JetBrains Mono", "Fira Code", monospace;
   }
   * { box-sizing: border-box; }
