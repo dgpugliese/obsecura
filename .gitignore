@@ -5,3 +5,4 @@ node_modules/
 # Build output — produced by `npm run build` from src/app.jsx
 app.js
 app.js.map
+.claude/
