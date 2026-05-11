@@ -597,6 +597,7 @@ function hexLine(bytes) {
 // loaded without a build step).
 const BUILD_SHA = (typeof __BUILD_SHA__ !== "undefined") ? __BUILD_SHA__ : "dev";
 const BUILD_TIME = (typeof __BUILD_TIME__ !== "undefined") ? __BUILD_TIME__ : "";
+const BUILD_VERSION = (typeof __BUILD_VERSION__ !== "undefined") ? __BUILD_VERSION__ : "dev";
 
 function useNarrow(threshold = 720) {
   const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < threshold);
@@ -716,7 +717,7 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
                 fontSize: 10, color: theme.inkFaint, letterSpacing: "0.18em",
                 textDecoration: "none",
               }}
-            >v0.1.1 · build {BUILD_SHA}</a>
+            >{BUILD_VERSION} · build {BUILD_SHA}</a>
           )}
         </div>
         {!narrow && (
