@@ -14,7 +14,7 @@ const theme = {
   borderHi: "#2a2f3d",
   ink: "#e9ecf2",
   inkDim: "#9aa0ad",
-  inkFaint: "#5a6172",
+  inkFaint: "#7a818c",
   accent: "oklch(0.82 0.16 195)",
   accentSoft: "oklch(0.82 0.16 195 / 0.18)",
   accentLine: "oklch(0.82 0.16 195 / 0.45)",

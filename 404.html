@@ -23,7 +23,7 @@
     --border-hi: #2a2f3d;
     --ink: #e9ecf2;
     --ink-dim: #9aa0ad;
-    --ink-faint: #5a6172;
+    --ink-faint: #7a818c;
     --accent: oklch(0.82 0.16 195);
     --accent-soft: oklch(0.82 0.16 195 / 0.18);
     --accent-line: oklch(0.82 0.16 195 / 0.45);
@@ -36,6 +36,9 @@
   html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.6; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  /* Inline body-text links carry an underline so they're discernible by more than colour (WCAG 1.4.1). */
+  .note a, .lede a, .lead a, .body p a, .body li a, p a, li a { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--accent-line); }
+  .note a:hover, .lede a:hover, .lead a:hover, .body p a:hover, .body li a:hover, p a:hover, li a:hover { text-decoration-color: var(--accent); }
   .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; }
   .card { width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; }
   .card .label { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
@@ -58,7 +61,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<main class="wrap">
   <div class="brand">OBSCURA<span class="v">404</span></div>
   <div class="card">
     <div class="label"><span>request</span><span>404 / not found</span></div>
@@ -84,6 +87,6 @@
     </div>
   </div>
   <div class="foot">obscr.app · zero-knowledge file transfer</div>
-</div>
+</main>
 </body>
 </html>

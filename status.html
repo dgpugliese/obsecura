@@ -22,7 +22,7 @@
     --border-hi: #2a2f3d;
     --ink: #e9ecf2;
     --ink-dim: #9aa0ad;
-    --ink-faint: #5a6172;
+    --ink-faint: #7a818c;
     --accent: oklch(0.82 0.16 195);
     --accent-soft: oklch(0.82 0.16 195 / 0.18);
     --accent-line: oklch(0.82 0.16 195 / 0.45);
@@ -35,6 +35,9 @@
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.6; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  /* Inline body-text links carry an underline so they're discernible by more than colour (WCAG 1.4.1). */
+  .note a, .lede a, .lead a, .body p a, .body li a, p a, li a { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--accent-line); }
+  .note a:hover, .lede a:hover, .lead a:hover, .body p a:hover, .body li a:hover, p a:hover, li a:hover { text-decoration-color: var(--accent); }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
   .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
   .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
@@ -75,7 +78,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<main class="wrap">
   <div class="top">
     <div class="brand">OBSCURA<span class="v">STATUS</span></div>
     <div class="nav">

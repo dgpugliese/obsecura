@@ -27,7 +27,7 @@
     --border-hi: #2a2f3d;
     --ink: #e9ecf2;
     --ink-dim: #9aa0ad;
-    --ink-faint: #5a6172;
+    --ink-faint: #7a818c;
     --accent: oklch(0.82 0.16 195);
     --accent-soft: oklch(0.82 0.16 195 / 0.18);
     --accent-line: oklch(0.82 0.16 195 / 0.45);
@@ -40,6 +40,9 @@
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.7; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  /* Inline body-text links carry an underline so they're discernible by more than colour (WCAG 1.4.1). */
+  .lede a, .note a, .body p a, .body li a { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--accent-line); }
+  .lede a:hover, .note a:hover, .body p a:hover, .body li a:hover { text-decoration-color: var(--accent); }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
   .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
   .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
@@ -72,7 +75,7 @@
 
   .promise { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .promise .col { background: var(--panel-lo); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
-  .promise .col h3 { margin: 0 0 8px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+  .promise .col h2 { margin: 0 0 8px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
   .promise .col.good h3 { color: var(--secure); }
   .promise .col.bad h3 { color: var(--crit); }
   .promise ul { margin: 0; padding-left: 16px; color: var(--ink-dim); font-size: 12px; line-height: 1.9; }
@@ -111,7 +114,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<main class="wrap">
 
   <div class="top">
     <div class="brand">OBSCURA<span class="v">v0.1.1</span></div>
@@ -166,7 +169,7 @@
     <div class="body">
       <div class="promise">
         <div class="col good">
-          <h3>what we can see</h3>
+          <h2>what we can see</h2>
           <ul>
             <li>Opaque ciphertext bytes</li>
             <li>Total ciphertext size</li>
@@ -175,7 +178,7 @@
           </ul>
         </div>
         <div class="col bad">
-          <h3>what we never see</h3>
+          <h2>what we never see</h2>
           <ul>
             <li>Plaintext bytes — encrypted before upload</li>
             <li>Encryption keys — in the URL fragment</li>
@@ -218,6 +221,6 @@
     <a href="https://github.com/dgpugliese/Obsecura">github</a>
   </div>
 
-</div>
+</main>
 </body>
 </html>
