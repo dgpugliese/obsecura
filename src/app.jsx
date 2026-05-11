@@ -716,7 +716,7 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
                 fontSize: 10, color: theme.inkFaint, letterSpacing: "0.18em",
                 textDecoration: "none",
               }}
-            >v0.5 · build {BUILD_SHA}</a>
+            >v0.1.1 · build {BUILD_SHA}</a>
           )}
         </div>
         {!narrow && (
