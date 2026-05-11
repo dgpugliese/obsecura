@@ -16,19 +16,24 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Palette mirrors the React app's theme (src/app.jsx) exactly so the
+     landing reads as the same product, not a near-miss. */
   :root {
     --bg: #08090c;
-    --panel: #0e1016;
-    --panel-lo: #0a0c12;
-    --panel-hi: #12141c;
-    --border: #1c2030;
-    --border-hi: #262b3d;
-    --ink: #d6dae5;
-    --ink-dim: #7a808e;
-    --ink-faint: #4a4f5e;
-    --accent: #6ee7b7;
-    --warn: #f5c451;
-    --crit: #ef6f6f;
+    --panel: #0f1116;
+    --panel-lo: #0b0d12;
+    --panel-hi: #15181f;
+    --border: #1d212b;
+    --border-hi: #2a2f3d;
+    --ink: #e9ecf2;
+    --ink-dim: #9aa0ad;
+    --ink-faint: #5a6172;
+    --accent: oklch(0.82 0.16 195);
+    --accent-soft: oklch(0.82 0.16 195 / 0.18);
+    --accent-line: oklch(0.82 0.16 195 / 0.45);
+    --secure: oklch(0.78 0.17 150);
+    --warn: oklch(0.75 0.18 60);
+    --crit: oklch(0.68 0.22 25);
     --mono: "JetBrains Mono", "Fira Code", monospace;
   }
   * { box-sizing: border-box; }
@@ -52,9 +57,9 @@
   .hero .lede strong { color: var(--ink); font-weight: 600; }
   .hero .actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
   .btn { display: inline-block; padding: 10px 16px; border-radius: 3px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; border: 1px solid var(--border); color: var(--ink); }
-  .btn:hover { text-decoration: none; border-color: var(--accent); color: var(--accent); }
-  .btn.primary { border-color: var(--accent); color: var(--accent); }
-  .btn.primary:hover { background: rgba(110, 231, 183, 0.08); }
+  .btn:hover { text-decoration: none; border-color: var(--accent-line); color: var(--accent); }
+  .btn.primary { border-color: var(--accent-line); color: var(--accent); background: var(--accent-soft); }
+  .btn.primary:hover { background: var(--accent-soft); border-color: var(--accent); }
 
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .step { background: var(--panel-lo); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
@@ -67,7 +72,7 @@
   .promise { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .promise .col { background: var(--panel-lo); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
   .promise .col h3 { margin: 0 0 8px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
-  .promise .col.good h3 { color: var(--accent); }
+  .promise .col.good h3 { color: var(--secure); }
   .promise .col.bad h3 { color: var(--crit); }
   .promise ul { margin: 0; padding-left: 16px; color: var(--ink-dim); font-size: 12px; line-height: 1.9; }
   .promise ul li::marker { color: var(--ink-faint); }
