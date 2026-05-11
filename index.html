@@ -41,14 +41,15 @@
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
-  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
   .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
   .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
-  .nav a { color: var(--ink-dim); margin-left: 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .nav a { color: var(--ink-dim); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
   .nav a.active { color: var(--ink); }
 
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; }
-  .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
+  .panel > .label { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
   .panel > .body { padding: 18px 20px; }
 
   .hero h1 { margin: 0 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -0.005em; color: var(--ink); line-height: 1.35; font-family: var(--mono); }
@@ -89,10 +90,23 @@
   .foot a:hover { color: var(--accent); }
 
   @media (max-width: 600px) {
-    .nav a { margin-left: 10px; }
+    .wrap { padding: 22px 16px 60px; }
+    .top { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .nav { gap: 8px 14px; width: 100%; }
+    .nav a { font-size: 10.5px; }
     .steps { grid-template-columns: 1fr; }
     .promise { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 19px; }
+    .hero h1 { font-size: 18px; line-height: 1.4; }
+    .hero .lede { font-size: 12.5px; }
+    .panel > .body { padding: 14px 14px; }
+    .panel > .label { font-size: 9.5px; padding: 8px 12px; }
+    .actions { flex-direction: column; gap: 8px; }
+    .btn { width: 100%; text-align: center; padding: 12px 14px; }
+    .foot { font-size: 9.5px; line-height: 2; }
+  }
+  @media (max-width: 400px) {
+    .brand { font-size: 13px; letter-spacing: 0.26em; }
+    .brand .v { display: block; margin-left: 0; margin-top: 4px; }
   }
 </style>
 </head>
