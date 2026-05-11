@@ -11,10 +11,10 @@ routes = [
   { pattern = "status.obscr.app", custom_domain = true },
 ]
 
-# Serve Obscura.html (and other static assets) from the project root.
+# Serve index.html (and other static assets) from the project root.
 # `.assetsignore` excludes worker/, wrangler.toml, .git/, etc.
-# Default not_found behavior falls through to the Worker, which rewrites
-# `/` → `/Obscura.html` and handles `/api/*`.
+# The assets binding serves index.html at `/` automatically; the Worker
+# handles `/api/*`, the status.obscr.app root rewrite, and the styled 404.
 [assets]
 directory = "."
 binding = "ASSETS"

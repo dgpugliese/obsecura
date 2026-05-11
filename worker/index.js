@@ -96,17 +96,27 @@ export default {
       return jerr(404, "not found");
     }
 
-    // Per-subdomain root rewrites. Subdomain hosts pin a single page so
-    // visitors land directly on it instead of having to know the path.
+    // status.obscr.app pins the root to /status. We let the asset binding
+    // (which html_handling rewrites .html → bare path) handle the canonical
+    // form by re-issuing as /status and following one redirect inline, so
+    // the visitor's URL bar reads status.obscr.app/status without a flash.
+    // The main domain doesn't need any root rewrite — the assets binding
+    // serves index.html at / automatically.
     const host = url.hostname;
     const isRoot = url.pathname === "/" || url.pathname === "";
-    if (isRoot) {
-      const rootPath =
-        host === "status.obscr.app" ? "/status.html" : "/Obscura.html";
+    if (isRoot && host === "status.obscr.app") {
       const u = new URL(request.url);
-      u.pathname = rootPath;
-      const res = await env.ASSETS.fetch(new Request(u.toString(), request));
-      return withSecurityHeaders(res);
+      u.pathname = "/status";
+      const res = await env.ASSETS.fetch(new Request(u.toString(), { headers: request.headers }));
+      if (res.status === 200) return withSecurityHeaders(res);
+      // Fallback: follow one redirect if assets binding emits a 3xx.
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        if (loc) {
+          const followed = await env.ASSETS.fetch(new Request(new URL(loc, u).toString(), { headers: request.headers }));
+          if (followed.status === 200) return withSecurityHeaders(followed);
+        }
+      }
     }
 
     const res = await env.ASSETS.fetch(request);

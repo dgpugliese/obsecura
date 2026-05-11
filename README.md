@@ -61,7 +61,7 @@ npm install
 npm run dev      # builds src/app.jsx → app.js, runs wrangler on :8787
 ```
 
-JSX source is in [`src/app.jsx`](src/app.jsx). `npm run build` produces [`app.js`](app.js) at the repo root, loaded by [`Obscura.html`](Obscura.html). Static assets ([`Obscura.html`](Obscura.html), [`_headers`](_headers), `app.js`, [`favicon.svg`](favicon.svg)) are served via the `[assets]` binding; everything else is the worker.
+JSX source is in [`src/app.jsx`](src/app.jsx). `npm run build` produces [`app.js`](app.js) at the repo root, loaded by [`index.html`](index.html). Static assets ([`index.html`](index.html), [`_headers`](_headers), `app.js`, [`favicon.svg`](favicon.svg)) are served via the `[assets]` binding; everything else is the worker.
 
 ### Deploy
 
