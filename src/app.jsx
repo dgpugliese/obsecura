@@ -728,6 +728,8 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
               <a href="/status.html" style={{ color: theme.inkDim, textDecoration: "none" }}>status</a>
               {" · "}
               <a href="/privacy.html" style={{ color: theme.inkDim, textDecoration: "none" }}>privacy</a>
+              {" · "}
+              <a href="/support.html" style={{ color: theme.inkDim, textDecoration: "none" }}>support</a>
             </span>
           </>
         )}
