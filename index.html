@@ -27,185 +27,168 @@
     --ink-dim: #7a808e;
     --ink-faint: #4a4f5e;
     --accent: #6ee7b7;
-    --accent-soft: rgba(110, 231, 183, 0.08);
-    --accent-line: rgba(110, 231, 183, 0.4);
     --warn: #f5c451;
+    --crit: #ef6f6f;
     --mono: "JetBrains Mono", "Fira Code", monospace;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.7; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
+  .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
+  .nav a { color: var(--ink-dim); margin-left: 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav a.active { color: var(--ink); }
 
-  .bggrid {
-    position: fixed; inset: 0; pointer-events: none; opacity: 0.4;
-    background-image:
-      linear-gradient(to right, rgba(28,32,48,0.5) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(28,32,48,0.5) 1px, transparent 1px);
-    background-size: 48px 48px;
-  }
-
-  .wrap { max-width: 920px; margin: 0 auto; padding: 28px 22px 60px; position: relative; }
-
-  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 40px; gap: 12px; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand .badge { width: 22px; height: 22px; border-radius: 4px; background: var(--accent-soft); border: 1px solid var(--accent-line); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; font-size: 11px; }
-  .brand .name { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; color: var(--ink); }
-  .nav { display: flex; gap: 0; align-items: center; font-size: 11px; color: var(--ink-dim); letter-spacing: 0.12em; text-transform: uppercase; flex-wrap: wrap; }
-  .nav a { color: var(--ink-dim); padding: 0 10px; border-right: 1px solid var(--border); }
-  .nav a:last-child { border-right: none; padding-right: 0; }
-  .nav a:hover { color: var(--accent); text-decoration: none; }
-
-  .hero { padding: 18px 0 28px; }
-  .hero .eyebrow { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; display: inline-flex; align-items: center; gap: 8px; }
-  .hero .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: pulse 2.2s infinite; }
-  @keyframes pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(110,231,183,0.6); }
-    70%  { box-shadow: 0 0 0 7px rgba(110,231,183,0); }
-    100% { box-shadow: 0 0 0 0 rgba(110,231,183,0); }
-  }
-  .hero h1 { margin: 0 0 16px; font-size: 38px; line-height: 1.1; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); font-family: var(--mono); }
-  .hero h1 .accent { color: var(--accent); }
-  .hero .lede { font-size: 14px; color: var(--ink-dim); max-width: 640px; line-height: 1.8; margin: 0 0 26px; }
-  .hero .lede strong { color: var(--ink); font-weight: 600; }
-  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
-  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 4px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; transition: transform 0.08s ease, background 0.15s ease; cursor: pointer; }
-  .btn:hover { text-decoration: none; transform: translateY(-1px); }
-  .btn-primary { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); font-weight: 700; }
-  .btn-primary:hover { background: rgba(110,231,183,0.14); }
-  .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--border-hi); }
-  .btn-ghost:hover { border-color: var(--accent-line); color: var(--accent); }
-  .arrow { font-family: var(--mono); }
-
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 36px 0 28px; }
-  .step { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 18px; position: relative; }
-  .step .n { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
-  .step .n .num { color: var(--accent); }
-  .step .t { font-size: 14px; color: var(--ink); margin-bottom: 8px; font-weight: 600; }
-  .step .d { font-size: 11.5px; color: var(--ink-dim); line-height: 1.7; }
-
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin: 18px 0; }
-  .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; }
+  .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
   .panel > .body { padding: 18px 20px; }
 
-  .promise { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  .promise .col h3 { margin: 0 0 10px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
-  .promise ul { margin: 0; padding-left: 18px; color: var(--ink-dim); font-size: 12.5px; line-height: 1.9; }
-  .promise ul li::marker { color: var(--accent); }
-  .promise .col.bad ul li::marker { color: #ef6f6f; }
+  .hero h1 { margin: 0 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -0.005em; color: var(--ink); line-height: 1.35; font-family: var(--mono); }
+  .hero h1 .accent { color: var(--accent); }
+  .hero .lede { font-size: 13px; color: var(--ink-dim); line-height: 1.85; margin: 0; max-width: 680px; }
+  .hero .lede strong { color: var(--ink); font-weight: 600; }
+  .hero .actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 10px 16px; border-radius: 3px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; border: 1px solid var(--border); color: var(--ink); }
+  .btn:hover { text-decoration: none; border-color: var(--accent); color: var(--accent); }
+  .btn.primary { border-color: var(--accent); color: var(--accent); }
+  .btn.primary:hover { background: rgba(110, 231, 183, 0.08); }
 
-  .stack { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--ink-dim); margin-top: 14px; }
-  .chip { padding: 4px 10px; border: 1px solid var(--border-hi); border-radius: 999px; background: var(--panel-lo); font-family: var(--mono); letter-spacing: 0.04em; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .step { background: var(--panel-lo); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
+  .step .n { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  .step .n .num { color: var(--accent); }
+  .step .t { font-size: 13px; color: var(--ink); margin-bottom: 6px; font-weight: 600; }
+  .step .d { font-size: 11.5px; color: var(--ink-dim); line-height: 1.7; }
+  .step .d strong { color: var(--ink); font-weight: 600; }
+
+  .promise { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .promise .col { background: var(--panel-lo); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
+  .promise .col h3 { margin: 0 0 8px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+  .promise .col.good h3 { color: var(--accent); }
+  .promise .col.bad h3 { color: var(--crit); }
+  .promise ul { margin: 0; padding-left: 16px; color: var(--ink-dim); font-size: 12px; line-height: 1.9; }
+  .promise ul li::marker { color: var(--ink-faint); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; font-size: 10.5px; color: var(--ink-dim); }
+  .chip { padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel-lo); font-family: var(--mono); }
   .chip strong { color: var(--ink); font-weight: 600; }
 
-  .cta-block { background: linear-gradient(135deg, var(--panel) 0%, var(--panel-hi) 100%); border: 1px solid var(--accent-line); border-radius: 6px; padding: 28px 24px; margin: 32px 0 18px; text-align: center; }
-  .cta-block .h { font-size: 18px; color: var(--ink); margin-bottom: 8px; font-weight: 600; letter-spacing: -0.005em; }
-  .cta-block .sub { font-size: 12px; color: var(--ink-dim); margin-bottom: 18px; }
+  .note { font-size: 11px; color: var(--ink-dim); line-height: 1.8; }
+  .note strong { color: var(--warn); }
 
-  .foot { font-size: 10px; color: var(--ink-faint); text-align: center; padding-top: 24px; border-top: 1px solid var(--border); margin-top: 30px; letter-spacing: 0.08em; }
+  .foot { margin-top: 30px; font-size: 10px; color: var(--ink-faint); text-align: center; letter-spacing: 0.08em; }
   .foot a { color: var(--ink-faint); }
   .foot a:hover { color: var(--accent); }
 
-  .disclaimer { font-size: 10.5px; color: var(--ink-faint); margin-top: 14px; line-height: 1.7; }
-  .disclaimer strong { color: var(--warn); }
-
-  @media (max-width: 700px) {
-    .hero h1 { font-size: 28px; }
+  @media (max-width: 600px) {
+    .nav a { margin-left: 10px; }
     .steps { grid-template-columns: 1fr; }
-    .promise { grid-template-columns: 1fr; gap: 18px; }
-    .nav a { padding: 0 6px; }
+    .promise { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 19px; }
   }
 </style>
 </head>
 <body>
-<div class="bggrid"></div>
 <div class="wrap">
 
-  <header class="top">
-    <div class="brand">
-      <div class="badge">◐</div>
-      <div class="name">OBSCURA</div>
-    </div>
-    <nav class="nav">
+  <div class="top">
+    <div class="brand">OBSCURA<span class="v">v0.1.1</span></div>
+    <div class="nav">
       <a href="/app">app</a>
       <a href="/transparency.html">transparency</a>
       <a href="/status.html">status</a>
       <a href="/privacy.html">privacy</a>
       <a href="/support.html">support</a>
-    </nav>
-  </header>
+    </div>
+  </div>
 
-  <section class="hero">
-    <div class="eyebrow"><span class="dot"></span> zero-knowledge · ephemeral · open source</div>
-    <h1>Encrypt in the browser.<br/>Ship the ciphertext.<br/><span class="accent">Burn the link.</span></h1>
-    <p class="lede">
-      OBSCURA is a zero-knowledge file-transfer service. Files are encrypted in your browser with <strong>AES-256-GCM</strong> before they ever leave the page. The server stores ciphertext only — encryption keys never touch the wire — and the share link self-destructs after a configurable read count or TTL.
-    </p>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="/app">▸ send a file</a>
-      <a class="btn btn-ghost" href="#how">how it works <span class="arrow">↓</span></a>
+  <div class="panel hero">
+    <div class="label"><span>zero-knowledge file transfer</span><span>ephemeral · open source</span></div>
+    <div class="body">
+      <h1>Encrypt in the browser. Ship the ciphertext. <span class="accent">Burn the link.</span></h1>
+      <p class="lede">
+        OBSCURA is a zero-knowledge file-transfer service. Files are encrypted in your browser with <strong>AES-256-GCM</strong> before they ever leave the page. The server stores ciphertext only — encryption keys never touch the wire — and shares self-destruct after a configurable read count or TTL.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="/app">send a file →</a>
+        <a class="btn" href="#how">how it works</a>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <section id="how" class="steps">
-    <div class="step">
-      <div class="n"><span class="num">01</span> · encrypt</div>
-      <div class="t">in your browser</div>
-      <div class="d">A random 256-bit key is generated in-page. Your files are packed and run through <strong style="color:var(--ink)">AES-256-GCM</strong> via WebCrypto. Optional Argon2id passphrase wrapping.</div>
+  <div class="panel" id="how">
+    <div class="label"><span>how it works</span><span>3 steps</span></div>
+    <div class="body">
+      <div class="steps">
+        <div class="step">
+          <div class="n"><span class="num">01</span> · encrypt</div>
+          <div class="t">in your browser</div>
+          <div class="d">A random 256-bit key is generated in-page. Files are packed and run through <strong>AES-256-GCM</strong> via WebCrypto. Optional Argon2id passphrase wrap.</div>
+        </div>
+        <div class="step">
+          <div class="n"><span class="num">02</span> · upload</div>
+          <div class="t">ciphertext only</div>
+          <div class="d">The encrypted blob goes to a Cloudflare Worker. The key stays in the URL fragment (<strong>#k=…</strong>) — browsers never send fragments to servers.</div>
+        </div>
+        <div class="step">
+          <div class="n"><span class="num">03</span> · burn</div>
+          <div class="t">TTL or read-count</div>
+          <div class="d">Configurable expiry (up to <strong>7 days</strong>) and download cap (1–100). When either fires, R2 is purged and KV forgets. Manual burn anytime.</div>
+        </div>
+      </div>
     </div>
-    <div class="step">
-      <div class="n"><span class="num">02</span> · upload</div>
-      <div class="t">ciphertext only</div>
-      <div class="d">The encrypted blob goes to a Cloudflare Worker. The key stays in the URL fragment (<code>#k=…</code>) — browsers never send fragments to servers.</div>
-    </div>
-    <div class="step">
-      <div class="n"><span class="num">03</span> · burn</div>
-      <div class="t">TTL or read-count</div>
-      <div class="d">Configurable expiry (up to 7 days) and download cap (1–100). When either fires, R2 is purged and KV forgets. You can also burn manually.</div>
-    </div>
-  </section>
+  </div>
 
   <div class="panel">
-    <div class="label"><span>the trust posture</span><span>verifiable</span></div>
+    <div class="label"><span>trust posture</span><span>verifiable</span></div>
     <div class="body">
       <div class="promise">
-        <div class="col">
-          <h3>✓ what we can see</h3>
+        <div class="col good">
+          <h3>what we can see</h3>
           <ul>
             <li>Opaque ciphertext bytes</li>
             <li>Total ciphertext size</li>
-            <li>Aggregate daily counters (no per-share data)</li>
+            <li>Aggregate daily counters</li>
             <li>Cloudflare-side IP logs (see <a href="/privacy.html">privacy</a>)</li>
           </ul>
         </div>
         <div class="col bad">
-          <h3>✗ what we never see</h3>
+          <h3>what we never see</h3>
           <ul>
             <li>Plaintext bytes — encrypted before upload</li>
-            <li>Encryption keys — live in the URL fragment</li>
-            <li>Sender or recipient identity — no accounts, no email</li>
+            <li>Encryption keys — in the URL fragment</li>
+            <li>Sender or recipient identity — no accounts</li>
             <li>Filenames or content metadata in the clear</li>
           </ul>
         </div>
       </div>
-      <div class="stack">
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>stack</span><span>read the source</span></div>
+    <div class="body">
+      <div class="chips">
         <span class="chip"><strong>AES-256-GCM</strong> · WebCrypto</span>
         <span class="chip"><strong>Argon2id</strong> · m=64MiB · t=3</span>
         <span class="chip">Cloudflare <strong>Workers</strong> + R2 + KV</span>
-        <span class="chip"><strong>MIT</strong> · audit the source</span>
+        <span class="chip">React 18 · SRI-pinned</span>
+        <span class="chip"><strong>MIT</strong> · <a href="https://github.com/dgpugliese/Obsecura">github</a></span>
       </div>
     </div>
   </div>
 
-  <div class="cta-block">
-    <div class="h">No accounts. No tracking. No fee.</div>
-    <div class="sub">Drop a file. Get a link. Send it. Walk away.</div>
-    <a class="btn btn-primary" href="/app">▸ launch the app</a>
+  <div class="panel">
+    <div class="label"><span>disclaimer</span><span>read before relying on it</span></div>
+    <div class="body">
+      <div class="note">
+        OBSCURA has <strong>not been independently security-audited</strong>, has no SLA or key-recovery, and is <strong>not appropriate for regulated data</strong> (HIPAA / PCI / CJIS / classified). Read the <a href="https://github.com/dgpugliese/Obsecura/blob/main/DISCLAIMER.md">DISCLAIMER</a> and <a href="/privacy.html">privacy policy</a> before using it for anything that matters.
+      </div>
+    </div>
   </div>
-
-  <p class="disclaimer">
-    <strong>⚠ disclaimer.</strong> OBSCURA has <strong>not been independently security-audited</strong>, has no SLA or key-recovery, and is <strong>not appropriate for regulated data</strong> (HIPAA / PCI / CJIS / classified). Read the <a href="https://github.com/dgpugliese/Obsecura/blob/main/DISCLAIMER.md">DISCLAIMER</a> and <a href="/privacy.html">privacy policy</a> before using it for anything that matters.
-  </p>
 
   <div class="foot">
     <a href="/app">launch</a> ·
