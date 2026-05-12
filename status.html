@@ -39,10 +39,11 @@
   .note a, .lede a, .lead a, .body p a, .body li a, p a, li a { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--accent-line); }
   .note a:hover, .lede a:hover, .lead a:hover, .body p a:hover, .body li a:hover, p a:hover, li a:hover { text-decoration-color: var(--accent); }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
-  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
   .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.32em; }
   .brand .v { color: var(--ink-faint); font-weight: 400; letter-spacing: 0.18em; margin-left: 10px; font-size: 10px; }
-  .nav a { color: var(--ink-dim); margin-left: 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .nav a { color: var(--ink-dim); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
   .nav a.active { color: var(--ink); }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; }
   .panel > .label { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-lo); }
@@ -73,7 +74,13 @@
   .foot { margin-top: 30px; font-size: 10px; color: var(--ink-faint); text-align: center; letter-spacing: 0.08em; }
   @media (max-width: 600px) {
     .calendar { grid-template-columns: repeat(15, 1fr); }
-    .nav a { margin-left: 10px; }
+    .top { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .nav { gap: 8px 14px; width: 100%; }
+    .nav a { font-size: 10.5px; }
+  }
+  @media (max-width: 400px) {
+    .brand { font-size: 13px; letter-spacing: 0.26em; }
+    .brand .v { display: block; margin-left: 0; margin-top: 4px; }
   }
 </style>
 </head>
