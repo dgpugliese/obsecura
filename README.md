@@ -2,7 +2,7 @@
 
 > **Zero-knowledge ephemeral file transfer.** Encrypt in the browser, ship the ciphertext, burn the link.
 
-🔗 **Live:** [obscr.app](https://obscr.app) &nbsp;·&nbsp; 📊 [transparency](https://obscr.app/transparency) &nbsp;·&nbsp; 🟢 [status](https://obscr.app/status) &nbsp;·&nbsp; 🔒 [privacy](https://obscr.app/privacy)
+🔗 **Live:** [obscr.app](https://obscr.app) &nbsp;·&nbsp; 🚀 [app](https://obscr.app/app) &nbsp;·&nbsp; 📊 [transparency](https://obscr.app/transparency) &nbsp;·&nbsp; 🟢 [status](https://obscr.app/status) &nbsp;·&nbsp; 🔒 [privacy](https://obscr.app/privacy) &nbsp;·&nbsp; ☕ [support](https://obscr.app/support)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Deployed on Cloudflare](https://img.shields.io/badge/edge-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
@@ -37,7 +37,7 @@ key stays in #fragment          metadata in KV (TTL)              decrypt with #
 
 - 🔐 **AES-256-GCM** authenticated encryption (WebCrypto)
 - 🔑 **Argon2id passphrase wrapping** — optional second factor, browser-native wasm
-- 🔥 **Burn-after-read** — TTL (1–24h) and download count (1/3/5/10×), enforced server-side
+- 🔥 **Burn-after-read** — TTL (1h–7d) and download count (1/3/5/10×), enforced server-side
 - 💣 **Manual burn** — sender can nuke a share instantly from the Done screen
 - 📱 **QR code** for fast mobile handoff
 - 🎨 **Three layouts** — centered, sidebar, terminal
@@ -61,7 +61,7 @@ npm install
 npm run dev      # builds src/app.jsx → app.js, runs wrangler on :8787
 ```
 
-JSX source is in [`src/app.jsx`](src/app.jsx). `npm run build` produces [`app.js`](app.js) at the repo root, loaded by [`index.html`](index.html). Static assets ([`index.html`](index.html), [`_headers`](_headers), `app.js`, [`favicon.svg`](favicon.svg)) are served via the `[assets]` binding; everything else is the worker.
+JSX source is in [`src/app.jsx`](src/app.jsx). `npm run build` produces [`app.js`](app.js) at the repo root, loaded by [`app.html`](app.html) (the React shell served at `/app`). The marketing/landing page lives at [`index.html`](index.html) (served at `/`). The static pages — [`transparency.html`](transparency.html), [`status.html`](status.html), [`privacy.html`](privacy.html), [`support.html`](support.html), [`404.html`](404.html) — and [`_headers`](_headers), [`favicon.svg`](favicon.svg), `app.js` are served by the assets binding. Everything else is the worker.
 
 ### Deploy
 
