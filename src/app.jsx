@@ -596,6 +596,12 @@ function hexLine(bytes) {
 // to "dev" in environments where the define wasn't applied (e.g. raw JSX
 // loaded without a build step).
 const BUILD_SHA = (typeof __BUILD_SHA__ !== "undefined") ? __BUILD_SHA__ : "dev";
+
+// Marketing capture mode. Adding ?marketing=1 to the URL hides ephemeral
+// chrome (live clock, rotating hex, build hash, "secure" pulse, status
+// subtitles) so press shots stay pixel-stable between deploys.
+const MARKETING_MODE = typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("marketing") === "1";
 const BUILD_TIME = (typeof __BUILD_TIME__ !== "undefined") ? __BUILD_TIME__ : "";
 const BUILD_VERSION = (typeof __BUILD_VERSION__ !== "undefined") ? __BUILD_VERSION__ : "dev";
 
@@ -687,7 +693,7 @@ function LayoutToggle({ layout, setLayout }) {
   );
 }
 
-function TopBar({ subtitle, layout, setLayout, narrow = false }) {
+function TopBar({ subtitle, layout, setLayout, narrow = false, marketing = false }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -707,7 +713,7 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
             <IcLock size={12} color={theme.accent} />
           </div>
           <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.32em", color: theme.ink }}>OBSCURA</span>
-          {!narrow && (
+          {!narrow && !marketing && (
             <a
               href={BUILD_SHA && BUILD_SHA !== "dev" ? `https://github.com/dgpugliese/Obsecura/commit/${BUILD_SHA}` : "#"}
               target="_blank"
@@ -736,9 +742,9 @@ function TopBar({ subtitle, layout, setLayout, narrow = false }) {
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: narrow ? 8 : 14, fontSize: 11, color: theme.inkDim }}>
-        {subtitle && !narrow && <span style={{ color: theme.inkFaint }}>{subtitle}</span>}
-        {!narrow && <Clock color={theme.ink} />}
-        {!narrow && <Tag secure><Dot color={theme.secure} pulse /> secure</Tag>}
+        {subtitle && !narrow && !marketing && <span style={{ color: theme.inkFaint }}>{subtitle}</span>}
+        {!narrow && !marketing && <Clock color={theme.ink} />}
+        {!narrow && !marketing && <Tag secure><Dot color={theme.secure} pulse /> secure</Tag>}
         <Tag accent>ZK · OK</Tag>
         {!narrow && <LayoutToggle layout={layout} setLayout={setLayout} />}
       </div>
@@ -1627,7 +1633,7 @@ function HeroSettings({ ttl, setTtl, maxDL, setMaxDL, passEnabled, setPassEnable
 // ============================================================
 // Command strip
 // ============================================================
-function CommandStrip({ screen }) {
+function CommandStrip({ screen, marketing = false }) {
   const cmd = {
     empty: "$ obscura --watch ./drop --cipher aes-256-gcm",
     drag: "$ obscura.queue.add(files) [staged]",
@@ -1646,7 +1652,7 @@ function CommandStrip({ screen }) {
       borderRadius: 4, border: `1px solid ${theme.border}`,
     }}>
       <span><span style={{ color: theme.accent }}>›</span> {cmd}</span>
-      <span style={{ color: theme.inkFaint }}>{screen.toUpperCase()} · 0x{Math.floor(Math.random()*0xffff).toString(16).toUpperCase().padStart(4, "0")}</span>
+      <span style={{ color: theme.inkFaint }}>{screen.toUpperCase()}{marketing ? "" : " · 0x" + Math.floor(Math.random()*0xffff).toString(16).toUpperCase().padStart(4, "0")}</span>
     </div>
   );
 }
@@ -1950,7 +1956,7 @@ function App() {
       </svg>
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        <TopBar subtitle={subs[screen]} layout={layout} setLayout={setLayout} narrow={narrow} />
+        <TopBar subtitle={subs[screen]} layout={layout} setLayout={setLayout} narrow={narrow} marketing={MARKETING_MODE} />
 
         {effectiveLayout === "sidebar" && (
           <div style={{
@@ -1963,7 +1969,7 @@ function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
               {hero}
               <SpecStrip active={active} stats={cryptoStats} ttl={ttl} maxDL={maxDL} />
-              <CommandStrip screen={screen} />
+              <CommandStrip screen={screen} marketing={MARKETING_MODE} />
             </div>
             <RightRail files={files} active={active} stats={cryptoStats} />
           </div>
@@ -1981,7 +1987,7 @@ function App() {
               {hero}
               <PayloadInline files={files} />
               <SpecStrip active={active} narrow={narrow} stats={cryptoStats} ttl={ttl} maxDL={maxDL} />
-              <CommandStrip screen={screen} />
+              <CommandStrip screen={screen} marketing={MARKETING_MODE} />
             </div>
           </div>
         )}
@@ -2018,7 +2024,7 @@ function App() {
               <div style={{ padding: narrow ? 14 : 22, display: "flex", flexDirection: "column", gap: 14 }}>
                 {hero}
                 <PayloadInline files={files} />
-                <CommandStrip screen={screen} />
+                <CommandStrip screen={screen} marketing={MARKETING_MODE} />
               </div>
             </div>
           </div>
@@ -2414,7 +2420,7 @@ function DecryptApp({ keyBytes, id, passphraseMode }) {
       </svg>
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        <TopBar subtitle={subtitle} layout={layout} setLayout={setLayout} narrow={narrow} />
+        <TopBar subtitle={subtitle} layout={layout} setLayout={setLayout} narrow={narrow} marketing={MARKETING_MODE} />
         <div style={{
           flex: 1, padding: narrow ? "20px 14px" : "40px 22px",
           display: "flex", justifyContent: "center",
